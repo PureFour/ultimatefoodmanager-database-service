@@ -1,0 +1,68 @@
+{
+    "defaultSeverity": "error",
+    "extends": [
+        "tslint:latest"
+    ],
+    "linterOptions": {
+        "exclude": [
+            "*.json",
+            "**/*.json"
+        ]
+    },
+    "jsRules": {},
+    "rules": {
+        "no-implicit-dependencies": false,
+        "callable-types": true,
+        "max-line-length": {
+            "options": [160]
+        },
+        "static-this": true,
+        "new-parens": true,
+        "no-arg": true,
+        "no-bitwise": true,
+        "no-conditional-assignment": true,
+        "no-consecutive-blank-lines": false,
+        "class-name": true,
+        "no-debugger": true,
+        "no-duplicate-super": true,
+        "no-empty": false,
+        "no-empty-interface": true,
+        "no-eval": true,
+        "arrow-return-shorthand": true,
+        "no-misused-new": true,
+        "no-non-null-assertion": true,
+        "no-shadowed-variable": true,
+        "no-string-literal": false,
+        "no-string-throw": true,
+        "arrow-parens": false,
+        "semicolon": [true, "always", "ignore-bound-class-methods"],
+        "comma-dangle": ["error", "never"],
+        "trailing-comma": false,
+        "no-submodule-imports": false,
+        "no-angle-bracket-type-assertion": false,
+        "object-literal-sort-keys": false,
+        "object-literal-key-quotes": [true, "consistent-as-needed"],
+        "whitespace": [true,
+            "check-branch",
+            "check-decl",
+            "check-operator",
+            "check-separator",
+            "check-rest-spread",
+            "check-type",
+            "check-type-operator",
+            "check-preblock" ],
+        "variable-name": [
+            true,
+            "ban-keywords",
+            "check-format",
+            "allow-leading-underscore"
+        ],
+        "indent": [true, "tabs", 4],
+        "quotemark": [true, "single"],
+        "member-ordering": false,
+        "no-console": false,
+        "interface-name": false,
+        "no-object-literal-type-assertion": false
+    },
+    "rulesDirectory": []
+}

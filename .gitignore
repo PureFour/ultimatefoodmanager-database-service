@@ -1,0 +1,17 @@
+#Idea
+/.idea/
+*.iml
+/.vscode
+
+# SonarQube
+.scannerwork/
+
+# Dependency directories
+node_modules/
+/dist
+
+build.bat
+docker-compose-*
+package-lock.json
+*.bak
+!/yarn-error.log

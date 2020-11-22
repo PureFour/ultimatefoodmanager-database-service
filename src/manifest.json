@@ -1,0 +1,16 @@
+{
+  "name": "database-service",
+  "version": "0.0.1",
+  "description": "Ultimate Food Manager database foxx service.",
+  "engines": {
+	"arangodb": "^3.0.0"
+  },
+  "author": "daniel.baziak@student.uj.edu.pl",
+  "license": "ICS",
+  "main": "main.js",
+  "scripts": {
+	"setup": "scripts/setup.js",
+	"teardown": "scripts/teardown.js"
+  },
+  "tests": "test/**/*.js"
+}

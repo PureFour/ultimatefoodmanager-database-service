@@ -1,0 +1,2 @@
+# DatabaseService
+ArangoDB Foxx service

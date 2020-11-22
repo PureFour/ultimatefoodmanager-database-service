@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "esnext",
+        "types": ["reflect-metadata", "arangodb", "node"],
+        "outDir": "./dist",
+        "declaration": true,
+        "noImplicitAny": false,
+        "moduleResolution": "node",
+        "rootDir": "src",
+        "resolveJsonModule": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "noUnusedParameters": true,
+        "noUnusedLocals": true
+    },
+    "exclude": [
+        "node_modules",
+        "dist",
+        "src/manifest.json"
+    ],
+    "compileOnSave": true
+}

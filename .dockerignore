@@ -1,0 +1,10 @@
+.idea*
+src/scripts/publish-latest.sh
+Dockerfile
+docker-compose.yml
+src/scripts/build.sh
+.dockerignore
+.gitignore
+docker
+.git
+/yarn-error.log
