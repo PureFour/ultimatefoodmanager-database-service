@@ -1,3 +1,3 @@
-import * as sampleRouter from './routers/sample-router';
+import * as userRouter from './routers/user-router';
 
-module.context.use('/sample', sampleRouter.router, 'sample');
+module.context.use('users', userRouter.router, 'users');
