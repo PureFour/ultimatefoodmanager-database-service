@@ -17,8 +17,35 @@ export class DefaultUserQueries implements UserQueries {
       	`).toArray()[0];
 	};
 
+	public findUser = (email: string, login: string): User => {
+		return db._query(aql`
+            FOR user IN ${userCollection}
+            FILTER user.email == ${email} || user.login == ${login}
+            RETURN user
+      	`).toArray()[0];
+	};
+
+	public addUser = (user: User): User => {
+		return db._query(aql`
+            INSERT ${user}
+            IN ${userCollection}
+            RETURN NEW
+      	`).toArray()[0];
+	};
+
+	public deleteUser = (uuid: string): void => {
+		return db._query(aql`
+            FOR user IN ${userCollection}
+            FILTER user.uuid == ${uuid}
+            REMOVE user IN ${userCollection}
+  			RETURN OLD
+      	`).toArray()[0];
+	};
 }
 
 export interface UserQueries {
 	getUser: (uuid: string) => User;
+	findUser: (email: string, login: string) => User;
+	addUser: (user: User) => User;
+	deleteUser: (uuid: string) => void;
 }

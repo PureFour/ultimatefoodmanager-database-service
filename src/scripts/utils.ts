@@ -11,10 +11,21 @@ export const SETUP_UTILS = {
 			const qualifiedName = module.context.collectionName(collection.name);
 			if (!db._collection(qualifiedName)) {
 				db._createDocumentCollection(qualifiedName);
+				SETUP_UTILS.indexCollection(collection);
 			} else if (module.context.isProduction) {
-				console.debug(`collection ${qualifiedName} already exists. Leaving it untouched.`);
+				console.debug(`collection ${collection.name} already exists. Leaving it untouched.`);
 			}
 		}
+	},
+
+	indexCollection: (collection: Collection): void => {
+		const qualifiedName = module.context.collectionName(collection.name);
+		collection.indexes.forEach(
+			index => {
+				console.debug(`setup collection ${qualifiedName} index: [${index.type} => ${index.fields}]`);
+				db._collection(qualifiedName).ensureIndex({...index});
+			}
+		);
 	},
 
 	dropCollections: (collections: Collection[]): void => {

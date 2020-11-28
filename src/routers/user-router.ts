@@ -5,6 +5,7 @@ import { UserService } from '../services/default-user-service';
 import IDENTIFIER from '../config-ioc/identifiers';
 import { StatusCodes } from 'http-status-codes';
 import { UserModel } from '../models/web/user';
+import { RegisterRequestModel } from '../models/web/register-request';
 
 const MIME_TYPE = 'application/json';
 
@@ -21,6 +22,18 @@ export const router: Foxx.Router = (() => {
 		.response(StatusCodes.NOT_FOUND,  [MIME_TYPE])
 		.summary('Returns user by uuid.')
 		.description(`Returns user by uuid.`);
+
+	foxxRouter.post('signUp', userService.addUser, 'addUser')
+		.body(new RegisterRequestModel(), [MIME_TYPE])
+		.response(StatusCodes.CREATED, new UserModel(), [MIME_TYPE], 'Register response model')
+		.response(StatusCodes.BAD_REQUEST, [MIME_TYPE])
+		.summary('Returns created user with uuid auth token.')
+		.description(`Returns created user with uuid auth token.`);
+
+	foxxRouter.delete(':uuid', userService.deleteUser, 'deleteUser')
+		.pathParam('uuid', uuidSchema)
+		.response(StatusCodes.OK, [MIME_TYPE])
+		.response(StatusCodes.NOT_FOUND, [MIME_TYPE]);
 
 	return foxxRouter;
 })();

@@ -2,7 +2,7 @@ import {Collection} from '../collection';
 
 export const DOCUMENT_COLLECTION = Object.freeze({
 	USERS: new Collection('users', [
-		{type: 'hash', fields: []}
+		{type: 'hash', fields: ['uuid'], unique: true, deduplicate: false}
 	])
 });
 
