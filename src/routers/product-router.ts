@@ -1,19 +1,23 @@
-import {createRouter} from '@arangodb/foxx';
-import {container} from '../config-ioc/container';
+import { createRouter } from '@arangodb/foxx';
+import * as joi from 'joi';
+import { container } from '../config-ioc/container';
 import IDENTIFIER from '../config-ioc/identifiers';
-import {StatusCodes} from 'http-status-codes';
-import {ProductService} from '../services/default-product-service';
+import { StatusCodes } from 'http-status-codes';
+import { ProductService } from '../services/default-product-service';
 import { ProductModel } from '../models/web/product';
 
-const MIME_TYPE = 'application/json';
+const MIME_TYPE: string = 'application/json';
+const TAG: string = 'Products';
+const uuidSchema = joi.string().required().description('Product uuid');
 
 export const router: Foxx.Router = (() => {
 
 	const foxxRouter = createRouter();
 
-	const productService : ProductService = container.get<ProductService>(IDENTIFIER.PRODUCT_SERVICE);
+	const productService: ProductService = container.get<ProductService>(IDENTIFIER.PRODUCT_SERVICE);
 
 	foxxRouter.post(productService.addProduct, 'addProduct')
+		.tag(TAG)
 		.body(new ProductModel(), [MIME_TYPE])
 		.response(StatusCodes.CREATED, new ProductModel(), [MIME_TYPE], 'Product response model')
 		.response(StatusCodes.BAD_REQUEST, [MIME_TYPE])
@@ -21,6 +25,26 @@ export const router: Foxx.Router = (() => {
 		.summary('Returns created product with uuid.')
 		.description(`Returns created product with uuid.`);
 
+	foxxRouter.get(':uuid', productService.getProduct, 'getProduct')
+		.tag(TAG)
+		.pathParam('uuid', uuidSchema)
+		.response(StatusCodes.CREATED, new ProductModel(), [MIME_TYPE], 'Product response model')
+		.response(StatusCodes.NOT_FOUND, [MIME_TYPE])
+		.summary('Returns created product with uuid.')
+		.description(`Returns created product with uuid.`);
+
+	foxxRouter.get('all', productService.getAllProducts, 'getAllProducts')
+		.tag(TAG)
+		.response(StatusCodes.CREATED, [new ProductModel()], [MIME_TYPE], 'List of products')
+		.response(StatusCodes.NOT_FOUND, [MIME_TYPE])
+		.summary('Returns all created products.')
+		.description(`Returns all created products.`);
+
+	foxxRouter.delete(':uuid', productService.deleteProduct, 'deleteProduct')
+		.tag(TAG)
+		.pathParam('uuid', uuidSchema)
+		.summary('Deletes product with uuid.')
+		.description(`Deletes product with uuid.`);
 
 	return foxxRouter;
 })();

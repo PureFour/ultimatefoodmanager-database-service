@@ -8,6 +8,7 @@ import { UserModel } from '../models/web/user';
 import { RegisterRequestModel } from '../models/web/register-request';
 
 const MIME_TYPE = 'application/json';
+const TAG: string = 'Users';
 
 export const router: Foxx.Router = (() => {
 
@@ -17,6 +18,7 @@ export const router: Foxx.Router = (() => {
 	const uuidSchema = joi.string().required().description('User uuid');
 
 	foxxRouter.get(':uuid', userService.getUser, 'getUser')
+		.tag(TAG)
 		.pathParam('uuid', uuidSchema)
 		.response(StatusCodes.OK, new UserModel(), [MIME_TYPE], 'User model')
 		.response(StatusCodes.NOT_FOUND,  [MIME_TYPE])
@@ -24,6 +26,7 @@ export const router: Foxx.Router = (() => {
 		.description(`Returns user by uuid.`);
 
 	foxxRouter.post('signUp', userService.addUser, 'addUser')
+		.tag(TAG)
 		.body(new RegisterRequestModel(), [MIME_TYPE])
 		.response(StatusCodes.CREATED, new UserModel(), [MIME_TYPE], 'Register response model')
 		.response(StatusCodes.BAD_REQUEST, [MIME_TYPE])
@@ -31,6 +34,7 @@ export const router: Foxx.Router = (() => {
 		.description(`Returns created user with uuid auth token.`);
 
 	foxxRouter.delete(':uuid', userService.deleteUser, 'deleteUser')
+		.tag(TAG)
 		.pathParam('uuid', uuidSchema)
 		.response(StatusCodes.OK, [MIME_TYPE])
 		.response(StatusCodes.NOT_FOUND, [MIME_TYPE]);

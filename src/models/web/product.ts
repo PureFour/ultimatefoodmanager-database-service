@@ -1,6 +1,7 @@
 import * as joi from 'joi';
 import * as _ from 'lodash';
 import {Nutriments, NutrimentsModel} from './nutriments';
+import { Price, PriceModel } from './price';
 
 export class ProductModel implements Foxx.Model {
 
@@ -8,12 +9,13 @@ export class ProductModel implements Foxx.Model {
 		uuid: joi.string(),
 		name: joi.string(),
 		brand: joi.string(),
+		photoUrl: joi.string(),
 		barcode: joi.string(),
 		category: joi.string(),
-		price: joi.number(),
-		currency: joi.string(),
-		measurementUnit: joi.string(),
+		price: new PriceModel().schema,
+		totalQuantity: joi.number(),
 		quantity: joi.number(),
+		measurementUnit: joi.string(),
 		nutriments: new NutrimentsModel().schema,
 		expiryDate: joi.date()
 	});
@@ -31,12 +33,13 @@ export interface Product {
 	uuid: string;
 	name: string;
 	brand: string;
+	photoUrl: string;
 	barcode: string;
 	category: string;
-	price: number;
-	currency: string;
-	measurementUnit: string;
+	price: Price;
+	totalQuantity: number;
 	quantity: number;
+	measurementUnit: string;
 	nutriments: Nutriments;
 	expiryDate: string;
 }
