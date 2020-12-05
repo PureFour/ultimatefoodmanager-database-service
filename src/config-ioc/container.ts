@@ -1,10 +1,11 @@
-import {Container} from 'inversify';
+import { Container } from 'inversify';
 import { DefaultUserService, UserService } from '../services/default-user-service';
 import IDENTIFIER from './identifiers';
 import { DefaultUserQueries, UserQueries } from '../queries/default-user-queries';
 import { DefaultUserMapper, UserMapper } from '../mappers/default-user-mapper';
-import {DefaultProductService, ProductService} from '../services/default-product-service';
-import {DefaultProductQueries, ProductQueries} from '../queries/default-product-queries';
+import { DefaultProductService, ProductService } from '../services/default-product-service';
+import { DefaultProductQueries, ProductQueries } from '../queries/default-product-queries';
+import { DefaultProductMapper, ProductMapper } from '../mappers/default-product-mapper';
 
 export const container = new Container();
 
@@ -14,3 +15,4 @@ container.bind<UserMapper>(IDENTIFIER.USER_MAPPER).to(DefaultUserMapper);
 
 container.bind<ProductService>(IDENTIFIER.PRODUCT_SERVICE).to(DefaultProductService);
 container.bind<ProductQueries>(IDENTIFIER.PRODUCT_QUERIES).to(DefaultProductQueries);
+container.bind<ProductMapper>(IDENTIFIER.PRODUCT_MAPPER).to(DefaultProductMapper);

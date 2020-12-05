@@ -8,6 +8,10 @@ export const DOCUMENT_COLLECTION = Object.freeze({
 	PRODUCTS: new Collection('products', [
 		{type: 'hash', fields: ['uuid'], unique: true, deduplicate: false}
 	]),
+
+	CONTAINERS: new Collection('containers', [
+		{type: 'hash', fields: ['uuid'], unique: true, deduplicate: false}
+	]),
 });
 
 export const ALL_DOCUMENT_COLLECTIONS: Collection[] = Object.values(DOCUMENT_COLLECTION);

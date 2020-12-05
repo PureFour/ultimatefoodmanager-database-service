@@ -6,5 +6,9 @@ export const UTILS_SERVICE = {
 			const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
 			return v.toString(16);
 		});
+	},
+
+	generateDate: (): string => {
+		return new Date().toISOString().substring(0, 10);
 	}
 };

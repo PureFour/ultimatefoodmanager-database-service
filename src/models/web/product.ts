@@ -2,6 +2,7 @@ import * as joi from 'joi';
 import * as _ from 'lodash';
 import {Nutriments, NutrimentsModel} from './nutriments';
 import { Price, PriceModel } from './price';
+import { Metadata, MetadataModel } from './metadata';
 
 export class ProductModel implements Foxx.Model {
 
@@ -17,7 +18,7 @@ export class ProductModel implements Foxx.Model {
 		quantity: joi.number(),
 		measurementUnit: joi.string(),
 		nutriments: new NutrimentsModel().schema,
-		expiryDate: joi.date()
+		metadata: new MetadataModel().schema
 	});
 
 	forClient = (obj) => {
@@ -41,5 +42,5 @@ export interface Product {
 	quantity: number;
 	measurementUnit: string;
 	nutriments: Nutriments;
-	expiryDate: string;
+	metadata: Metadata;
 }
