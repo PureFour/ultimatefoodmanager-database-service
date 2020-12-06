@@ -86,7 +86,7 @@ export class DefaultProductQueries implements ProductQueries {
             	RETURN {
             		uuid: associatedProduct.uuid,
             		name: mainProduct.name,
-            		brand: mainProduct.name,
+            		brand: mainProduct.brand,
             		photoUrl: mainProduct.photoUrl,
             		barcode: mainProduct.barcode,
             		category: mainProduct.category,
