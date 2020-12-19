@@ -6,6 +6,7 @@ import IDENTIFIER from '../config-ioc/identifiers';
 import { StatusCodes } from 'http-status-codes';
 import { UserModel } from '../models/web/user';
 import { RegisterRequestModel } from '../models/web/register-request';
+import { FindUserQueryModel } from '../models/web/find-user-query';
 
 const MIME_TYPE = 'application/json';
 const TAG: string = 'Users';
@@ -20,6 +21,14 @@ export const router: Foxx.Router = (() => {
 	foxxRouter.get(':uuid', userService.getUser, 'getUser')
 		.tag(TAG)
 		.pathParam('uuid', uuidSchema)
+		.response(StatusCodes.OK, new UserModel(), [MIME_TYPE], 'User model')
+		.response(StatusCodes.NOT_FOUND,  [MIME_TYPE])
+		.summary('Returns user by uuid.')
+		.description(`Returns user by uuid.`);
+
+	foxxRouter.post(userService.findUser, 'findUser')
+		.tag(TAG)
+		.body(new FindUserQueryModel())
 		.response(StatusCodes.OK, new UserModel(), [MIME_TYPE], 'User model')
 		.response(StatusCodes.NOT_FOUND,  [MIME_TYPE])
 		.summary('Returns user by uuid.')

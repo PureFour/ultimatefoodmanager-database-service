@@ -7,6 +7,7 @@ import { StatusCodes } from 'http-status-codes';
 import { User } from '../models/web/user';
 import { RegisterRequest } from '../models/web/register-request';
 import { UserMapper } from '../mappers/default-user-mapper';
+import { FindUserQuery } from '../models/web/find-user-query';
 
 @injectable()
 export class DefaultUserService implements UserService {
@@ -17,6 +18,19 @@ export class DefaultUserService implements UserService {
 
 	public getUser = (req: Foxx.Request, res: Foxx.Response): void => {
 		const user : User = this.userQueries.getUser(req.pathParams.uuid);
+
+		if (!_.isNil(user)) {
+			this.finalize(res, user, StatusCodes.OK);
+		} else {
+			res.throw(StatusCodes.NOT_FOUND, 'User not found.');
+		}
+	};
+
+	public findUser = (req: Foxx.Request, res: Foxx.Response): void => {
+		const findUserQuery: FindUserQuery = req.body;
+
+		const user : User = this.userQueries.findUser(
+			findUserQuery.email, _.isNil(findUserQuery.login) ? '' : findUserQuery.login);
 
 		if (!_.isNil(user)) {
 			this.finalize(res, user, StatusCodes.OK);
@@ -55,6 +69,7 @@ export class DefaultUserService implements UserService {
 
 export interface UserService {
 	getUser: (req: Foxx.Request, res: Foxx.Response) => void;
+	findUser: (req: Foxx.Request, res: Foxx.Response) => void;
 	addUser: (req: Foxx.Request, res: Foxx.Response) => void;
 	deleteUser: (req: Foxx.Request, res: Foxx.Response) => void;
 }

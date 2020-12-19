@@ -17,7 +17,7 @@ export class DefaultUserQueries implements UserQueries {
       	`).toArray()[0];
 	};
 
-	public findUser = (email: string, login: string): User => {
+	public findUser = (email: string, login?: string): User => {
 		return db._query(aql`
             FOR user IN ${userCollection}
             FILTER user.email == ${email} || user.login == ${login}

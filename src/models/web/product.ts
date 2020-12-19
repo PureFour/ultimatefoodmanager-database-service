@@ -8,10 +8,10 @@ export class ProductModel implements Foxx.Model {
 
 	schema = joi.object().keys({
 		uuid: joi.string(),
-		name: joi.string(),
+		name: joi.string().required(),
 		brand: joi.string(),
 		photoUrl: joi.string(),
-		barcode: joi.string(),
+		barcode: joi.string().required(),
 		category: joi.string(),
 		price: new PriceModel().schema,
 		totalQuantity: joi.number(),

@@ -8,8 +8,6 @@ import { ProductMapper } from '../mappers/default-product-mapper';
 import { InternalProduct } from '../models/internal/internal-product';
 import { Container } from '../models/internal/container';
 
-const mockedUserUuid: string = 'f29389e8-8d33-4322-840f-acb5b67d7831';
-
 @injectable()
 export class DefaultProductService implements ProductService {
 	constructor(
@@ -21,7 +19,7 @@ export class DefaultProductService implements ProductService {
 	public addProduct = (req: Foxx.Request, res: Foxx.Response): void => {
 		// TODO dodac walidacje
 		const productToAdd: InternalProduct = this.productMapper.toInternalProduct(req.body);
-		const userUuid: string = this.extractUserUuid();
+		const userUuid: string = req.pathParams.userUuid;
 
 		let container: Container = this.productQueries.findContainer(userUuid);
 		if (_.isNil(container)) {
@@ -48,8 +46,8 @@ export class DefaultProductService implements ProductService {
 		this.finalize(res, this.productMapper.toWebProduct(product), StatusCodes.OK);
 	};
 
-	public readonly getAllProducts = (_req: Foxx.Request, res: Foxx.Response): void => {
-		const userUuid: string = this.extractUserUuid();
+	public readonly getAllProducts = (req: Foxx.Request, res: Foxx.Response): void => {
+		const userUuid: string = req.pathParams.userUuid;
 		const container: Container = this.productQueries.findContainer(userUuid);
 		if (_.isNil(container)) {
 			res.send([]);
@@ -61,7 +59,7 @@ export class DefaultProductService implements ProductService {
 
 	public readonly deleteProduct = (req: Foxx.Request, res: Foxx.Response): void => {
 		const uuid: string = req.pathParams.uuid;
-		const userUuid: string = this.extractUserUuid();
+		const userUuid: string = req.pathParams.userUuid;
 		const container: Container = this.productQueries.findContainer(userUuid);
 
 		if (_.isNil(this.productQueries.deleteProduct(uuid, container.uuid))) {
@@ -73,12 +71,6 @@ export class DefaultProductService implements ProductService {
 	private finalize = (res, payload, status) => {
 		res.status(status);
 		res.send(payload);
-	};
-
-	// do zmiany po wprowadzeniu tokenow!
-	/* @deprecated */
-	private readonly extractUserUuid = (_token?: string): string => {
-		return mockedUserUuid;
 	};
 }
 

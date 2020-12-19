@@ -5,6 +5,7 @@ import { Product } from '../models/web/product';
 import { AssociatedProduct } from '../models/internal/associated-product';
 import { InternalProduct } from '../models/internal/internal-product';
 import { Container } from '../models/internal/container';
+import {UTILS_SERVICE} from '../services/util-service';
 
 const productCollection: ArangoDB.Collection = DOCUMENT_COLLECTION.PRODUCTS.collection;
 const containersCollection: ArangoDB.Collection = DOCUMENT_COLLECTION.CONTAINERS.collection;
@@ -15,7 +16,7 @@ export class DefaultProductQueries implements ProductQueries {
 	public createContainer = (userUuid: string): Container => {
 		return db._query(aql`
             INSERT {
-            	uuid: '0d9826a6-4f67-422c-9543-ea8e1fb00d25',
+            	uuid: ${UTILS_SERVICE.generateUuid()},
             	userUuid: ${userUuid},
             	products: []
             }

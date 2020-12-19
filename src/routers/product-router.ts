@@ -9,6 +9,7 @@ import { ProductModel } from '../models/web/product';
 const MIME_TYPE: string = 'application/json';
 const TAG: string = 'Products';
 const uuidSchema = joi.string().required().description('Product uuid');
+const userUuidSchema = joi.string().required().description('User uuid');
 
 export const router: Foxx.Router = (() => {
 
@@ -16,8 +17,9 @@ export const router: Foxx.Router = (() => {
 
 	const productService: ProductService = container.get<ProductService>(IDENTIFIER.PRODUCT_SERVICE);
 
-	foxxRouter.post(productService.addProduct, 'addProduct')
+	foxxRouter.post(':userUuid', productService.addProduct, 'addProduct')
 		.tag(TAG)
+		.pathParam('userUuid', userUuidSchema)
 		.body(new ProductModel(), [MIME_TYPE])
 		.response(StatusCodes.CREATED, new ProductModel(), [MIME_TYPE], 'Product response model')
 		.response(StatusCodes.BAD_REQUEST, [MIME_TYPE])
@@ -33,8 +35,9 @@ export const router: Foxx.Router = (() => {
 		.summary('Returns created product with uuid.')
 		.description(`Returns created product with uuid.`);
 
-	foxxRouter.get('all', productService.getAllProducts, 'getAllProducts')
+	foxxRouter.get(':userUuid/all', productService.getAllProducts, 'getAllProducts')
 		.tag(TAG)
+		.pathParam('userUuid', userUuidSchema)
 		.response(StatusCodes.CREATED, [new ProductModel()], [MIME_TYPE], 'List of products')
 		.response(StatusCodes.NOT_FOUND, [MIME_TYPE])
 		.summary('Returns all created products.')
