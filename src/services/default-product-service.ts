@@ -16,9 +16,11 @@ export class DefaultProductService implements ProductService {
 	) {
 	}
 
+	// TODO dodać nowa kolekcje produktów (kart. prod) i trzymać tam globalne dane produktowe
+	// products stanie sie lokalna kolekcja dla użytkowników
+
 	public addProduct = (req: Foxx.Request, res: Foxx.Response): void => {
-		// TODO dodac walidacje
-		console.log('Careful! Adding product without validations!');
+		// TODO dodać walidacje
 		const productToAdd: InternalProduct = this.productMapper.toInternalProduct(req.body);
 		const userUuid: string = req.pathParams.userUuid;
 
@@ -29,8 +31,9 @@ export class DefaultProductService implements ProductService {
 
 		const dbProduct: InternalProduct = this.productQueries.findProduct(productToAdd.barcode);
 
-		const createdProduct: InternalProduct = _.isNil(dbProduct) ? this.productQueries.addProduct(productToAdd, container.uuid)
-			: this.productQueries.addAssociatedProduct(dbProduct.uuid, this.productMapper.toAssociatedProduct(productToAdd));
+		const createdProduct: InternalProduct = this.hasProduct(container, dbProduct) ?
+			this.productQueries.addAssociatedProduct(dbProduct.uuid, this.productMapper.toAssociatedProduct(productToAdd))
+			: this.productQueries.addProduct(productToAdd, container.uuid);
 
 		this.finalize(res, this.productMapper.toWebProduct(createdProduct), StatusCodes.CREATED);
 	};
@@ -67,6 +70,10 @@ export class DefaultProductService implements ProductService {
 			res.throw(StatusCodes.NOT_FOUND, 'Product not found');
 		}
 
+	};
+
+	private readonly hasProduct = (container: Container, product: InternalProduct): boolean => {
+		return !_.isNil(product) && !!_.find(container.products, product.uuid);
 	};
 
 	private finalize = (res, payload, status) => {
