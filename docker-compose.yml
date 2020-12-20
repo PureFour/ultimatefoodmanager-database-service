@@ -3,8 +3,9 @@ version: '3'
 services:
   database-service:
     image: ultimate-food-manager/database-service
-    hostname: ultimate-food-manager-database-service
+    restart:
+      always
     environment:
-      ARANGO_ROOT_PASSWORD: root
+      ARANGO_ROOT_PASSWORD: "root"
     ports:
-      - 8529:8529
+      - "8529:8529"

@@ -1,0 +1,37 @@
+image: docker
+
+services:
+    - docker:dind
+    
+stages:
+    - build
+    - test
+    - deploy
+
+build:
+    stage: build
+    only:
+        - develop
+        - master
+    script:
+        - yarn install
+        - yarn lintFixAll
+        - yarn build
+
+test:
+    stage: test
+    only:
+        - develop
+        - master
+    script:
+        - yarn install
+        - yarn test
+
+deploy:
+    stage: deploy
+    only:
+        - master
+    script:
+        - ./src/scripts/build.sh
+        - cd ~/builds/ChyqycUz/0/ultimatefoodmanager/main-service
+        - docker-compose up -d --remove-orphans
