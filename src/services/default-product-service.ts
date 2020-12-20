@@ -18,6 +18,7 @@ export class DefaultProductService implements ProductService {
 
 	public addProduct = (req: Foxx.Request, res: Foxx.Response): void => {
 		// TODO dodac walidacje
+		console.log('Careful! Adding product without validations!');
 		const productToAdd: InternalProduct = this.productMapper.toInternalProduct(req.body);
 		const userUuid: string = req.pathParams.userUuid;
 
