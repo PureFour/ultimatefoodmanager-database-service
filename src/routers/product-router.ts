@@ -27,6 +27,15 @@ export const router: Foxx.Router = (() => {
 		.summary('Returns created product with uuid.')
 		.description(`Returns created product with uuid.`);
 
+	foxxRouter.put(productService.updateProduct, 'updateProduct')
+		.tag(TAG)
+		.body(new ProductModel(), [MIME_TYPE])
+		.response(StatusCodes.OK, new ProductModel(), [MIME_TYPE], 'Product response model')
+		.response(StatusCodes.BAD_REQUEST, [MIME_TYPE])
+		.response(StatusCodes.NOT_FOUND, [MIME_TYPE])
+		.summary('Returns updated product.')
+		.description(`Returns updated product.`);
+
 	foxxRouter.get(':uuid', productService.getProduct, 'getProduct')
 		.tag(TAG)
 		.pathParam('uuid', uuidSchema)

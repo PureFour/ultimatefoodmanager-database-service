@@ -6,8 +6,8 @@ export class MetadataModel implements Foxx.Model {
 	schema = joi.object().keys({
 		synchronized: joi.boolean(),
 		toBeDeleted: joi.boolean(),
-		createdDate: joi.date(),
-		expiryDate: joi.date()
+		createdDate: joi.string(),
+		expiryDate: joi.string().allow(null)
 	});
 
 	forClient = (obj) => {

@@ -5,7 +5,7 @@ import { Product } from '../models/web/product';
 import { AssociatedProduct } from '../models/internal/associated-product';
 import { InternalProduct } from '../models/internal/internal-product';
 import { Container } from '../models/internal/container';
-import {UTILS_SERVICE} from '../services/util-service';
+import { UTILS_SERVICE } from '../services/util-service';
 
 const productCollection: ArangoDB.Collection = DOCUMENT_COLLECTION.PRODUCTS.collection;
 const containersCollection: ArangoDB.Collection = DOCUMENT_COLLECTION.CONTAINERS.collection;
@@ -47,6 +47,16 @@ export class DefaultProductQueries implements ProductQueries {
       	`).toArray()[0];
 	};
 
+	public updateProduct = (newProduct: Product): void => {
+		db._query(aql`
+			FOR product IN ${productCollection}
+			FILTER product.uuid == ${newProduct.uuid}
+			UPDATE product
+			WITH ${newProduct}
+			IN ${productCollection}
+      	`);
+	};
+
 	public addAssociatedProduct = (productUuid: string, associatedProduct: AssociatedProduct): InternalProduct => {
 		return db._query(aql`
             FOR product IN ${productCollection}
@@ -68,13 +78,46 @@ export class DefaultProductQueries implements ProductQueries {
 
 	public getProduct = (productUuid: string): InternalProduct => {
 		return db._query(aql`
-            FOR product IN ${productCollection}
-            FILTER product.uuid == ${productUuid}
-            RETURN product
+			LET result = (
+		    	FOR product IN ${productCollection}
+        			RETURN product.uuid == ${productUuid} ? product : FIRST(
+            			FOR associatedProduct IN product.associatedProducts
+                			FILTER associatedProduct.uuid == ${productUuid}
+                			RETURN {
+	            	  			uuid: associatedProduct.uuid,
+	            				name: product.name,
+	            				brand: product.brand,
+	            				photoUrl: product.photoUrl,
+	            				barcode: product.barcode,
+	            				category: product.category,
+	            				price: product.price,
+	            				totalQuantity: product.totalQuantity,
+	            				quantity: associatedProduct.quantity,
+	            				measurementUnit: product.measurementUnit,
+	            				nutriments: product.nutriments,
+	            				metadata: associatedProduct.metadata
+	            	   		}
+            		)
+			)
+			RETURN LAST(result)
       	`).toArray()[0];
 	};
 
-	public getAllProducts = (productUuid: string): InternalProduct[] => {
+	public getFullProduct = (productUuid: string): InternalProduct => {
+		return db._query(aql`
+			LET result = (
+		    	FOR product IN ${productCollection}
+        			RETURN DISTINCT product.uuid == ${productUuid} ? product : FIRST(
+            			FOR associatedProduct IN product.associatedProducts
+                			FILTER associatedProduct.uuid == ${productUuid}
+                			RETURN product
+            		)
+			)
+			RETURN LAST(result)
+      	`).toArray()[0];
+	};
+
+	public getAllProductsWithinProduct = (productUuid: string): InternalProduct[] => {
 		return db._query(aql`
 			LET productResult = (
             	FOR product IN ${productCollection}
@@ -126,9 +169,11 @@ export interface ProductQueries {
 	createContainer: (userUuid: string) => Container;
 	findContainer: (userUuid: string) => Container;
 	addProduct: (product: Product, containerUuid: string) => InternalProduct;
+	updateProduct: (product: Product) => void;
 	addAssociatedProduct: (productUuid: string, associatedProduct: AssociatedProduct) => InternalProduct;
 	findProduct: (productName: string) => InternalProduct;
 	getProduct: (productUuid: string) => InternalProduct;
-	getAllProducts: (_containerUuid: string) => InternalProduct[];
+	getFullProduct: (productUuid: string) => InternalProduct;
+	getAllProductsWithinProduct: (_containerUuid: string) => InternalProduct[];
 	deleteProduct: (productUuid: string, containerUuid: string) => InternalProduct;
 }

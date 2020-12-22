@@ -7,6 +7,7 @@ import { ProductQueries } from '../queries/default-product-queries';
 import { ProductMapper } from '../mappers/default-product-mapper';
 import { InternalProduct } from '../models/internal/internal-product';
 import { Container } from '../models/internal/container';
+import { Product } from '../models/web/product';
 
 @injectable()
 export class DefaultProductService implements ProductService {
@@ -38,6 +39,22 @@ export class DefaultProductService implements ProductService {
 		this.finalize(res, this.productMapper.toWebProduct(createdProduct), StatusCodes.CREATED);
 	};
 
+
+	public updateProduct = (req: Foxx.Request, res: Foxx.Response): void => {
+		const newProduct: Product = req.body;
+
+		if (_.isNil(newProduct.uuid)) {
+			res.throw(StatusCodes.BAD_REQUEST, 'Product uuid must be filled!');
+		}
+		const oldProduct: InternalProduct = this.productQueries.getProduct(newProduct.uuid);
+
+		this.validateProductToUpdate(newProduct, oldProduct, res);
+
+		const updatedProduct: InternalProduct = this.productMapper.toUpdatedFullProduct(this.productQueries.getFullProduct(newProduct.uuid), newProduct);
+
+		this.productQueries.updateProduct(updatedProduct);
+	};
+
 	public readonly getProduct = (req: Foxx.Request, res: Foxx.Response): void => {
 		const uuid: string = req.pathParams.uuid;
 		const product: InternalProduct = this.productQueries.getProduct(uuid);
@@ -57,7 +74,7 @@ export class DefaultProductService implements ProductService {
 			res.send([]);
 			return;
 		}
-		const products: InternalProduct[] = container.products.map(productUuid => this.productQueries.getAllProducts(productUuid)).flat(2);
+		const products: InternalProduct[] = container.products.map(productUuid => this.productQueries.getAllProductsWithinProduct(productUuid)).flat(2);
 		this.finalize(res, products.map(product => this.productMapper.toWebProduct(product)), StatusCodes.OK);
 	};
 
@@ -73,7 +90,32 @@ export class DefaultProductService implements ProductService {
 	};
 
 	private readonly hasProduct = (container: Container, product: InternalProduct): boolean => {
-		return !_.isNil(product) && !!_.find(container.products, product.uuid);
+		return !_.isNil(product) && _.includes(container.products, product.uuid);
+	};
+
+	private readonly validateProductToUpdate = (newProduct: Product, oldProduct: InternalProduct, res: Foxx.Response): void => {
+		if (this.emptyOrChanged(newProduct, oldProduct, 'barcode')) {
+			res.throw(StatusCodes.BAD_REQUEST, 'barcode is unmodifiable!');
+		}
+
+		if (this.emptyOrChanged(newProduct, oldProduct, 'metadata.createdDate')) {
+			res.throw(StatusCodes.BAD_REQUEST, 'createdDate is unmodifiable!');
+		}
+
+		if (this.isGreater(newProduct, 'quantity', oldProduct.totalQuantity)) {
+			res.throw(StatusCodes.BAD_REQUEST, 'quantity should be lesser than totalQuantity!');
+		}
+	};
+
+	private readonly emptyOrChanged = (firstProduct: Product | InternalProduct, secondProduct: Product | InternalProduct, valuePath: string): boolean => {
+		const firstProductField: any = _.get(firstProduct, valuePath, null);
+		const secondProductField: any = _.get(secondProduct, valuePath, null);
+		return _.isNil(firstProductField) || !_.eq(firstProductField, secondProductField);
+	};
+
+	private readonly isGreater = (product: Product | InternalProduct, valuePath: string, comparedValue: number): boolean => {
+		const productField: any = _.get(product, valuePath, 0);
+		return productField > comparedValue;
 	};
 
 	private finalize = (res, payload, status) => {
@@ -84,6 +126,7 @@ export class DefaultProductService implements ProductService {
 
 export interface ProductService {
 	addProduct: (req: Foxx.Request, res: Foxx.Response) => void;
+	updateProduct: (req: Foxx.Request, res: Foxx.Response) => void;
 	getProduct: (req: Foxx.Request, res: Foxx.Response) => void;
 	getAllProducts: (req: Foxx.Request, res: Foxx.Response) => void;
 	deleteProduct: (req: Foxx.Request, res: Foxx.Response) => void;
