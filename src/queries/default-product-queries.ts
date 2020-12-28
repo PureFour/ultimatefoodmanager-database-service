@@ -33,6 +33,16 @@ export class DefaultProductQueries implements ProductQueries {
       	`).toArray()[0];
 	};
 
+	public updateContainer = (newContainer: Container): void => {
+		db._query(aql`
+            FOR container IN ${containersCollection}
+			FILTER container.uuid == ${newContainer.uuid}
+			UPDATE container
+			WITH ${newContainer}
+			IN ${containersCollection}
+      	`);
+	};
+
 	public addProduct = (product: Product, containerUuid: string): InternalProduct => {
 		return db._query(aql`
 			FOR container IN ${containersCollection}
@@ -47,10 +57,10 @@ export class DefaultProductQueries implements ProductQueries {
       	`).toArray()[0];
 	};
 
-	public updateProduct = (newProduct: Product): void => {
+	public updateProduct = (newProduct: InternalProduct): void => {
 		db._query(aql`
 			FOR product IN ${productCollection}
-			FILTER product.uuid == ${newProduct.uuid}
+			FILTER product._key == ${newProduct._key}
 			UPDATE product
 			WITH ${newProduct}
 			IN ${productCollection}
@@ -147,8 +157,7 @@ export class DefaultProductQueries implements ProductQueries {
 	};
 
 
-	public deleteProduct = (productUuid: string, containerUuid: string): InternalProduct => {
-		// TODO gdy usuwany jest associated to update w drzewie i zmiana uuid w container!
+	public deleteFullProduct = (productUuid: string, containerUuid: string): InternalProduct => {
 		return db._query(aql`
 			FOR container IN ${containersCollection}
 			FILTER container.uuid == ${containerUuid}
@@ -168,12 +177,13 @@ export class DefaultProductQueries implements ProductQueries {
 export interface ProductQueries {
 	createContainer: (userUuid: string) => Container;
 	findContainer: (userUuid: string) => Container;
+	updateContainer: (container: Container) => void;
 	addProduct: (product: Product, containerUuid: string) => InternalProduct;
-	updateProduct: (product: Product) => void;
+	updateProduct: (product: InternalProduct) => void;
 	addAssociatedProduct: (productUuid: string, associatedProduct: AssociatedProduct) => InternalProduct;
 	findProduct: (productName: string) => InternalProduct;
 	getProduct: (productUuid: string) => InternalProduct;
 	getFullProduct: (productUuid: string) => InternalProduct;
 	getAllProductsWithinProduct: (_containerUuid: string) => InternalProduct[];
-	deleteProduct: (productUuid: string, containerUuid: string) => InternalProduct;
+	deleteFullProduct: (productUuid: string, containerUuid: string) => InternalProduct;
 }

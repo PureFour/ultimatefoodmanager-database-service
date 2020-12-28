@@ -4,6 +4,7 @@ import { Metadata } from '../web/metadata';
 import { AssociatedProduct } from './associated-product';
 
 export interface InternalProduct { // TODO wyciągnąć dane i zmienić model na {uuid, data, metadata, associatedProducts}
+	_key?: string;
 	uuid: string;
 	name: string;
 	brand: string;

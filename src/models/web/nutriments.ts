@@ -1,18 +1,19 @@
 import * as joi from 'joi';
 import * as _ from 'lodash';
+import { positiveNumber } from './utils';
 
 export class NutrimentsModel implements Foxx.Model {
 
 	schema = joi.object().keys({
-		energy: joi.number(),
-		fat: joi.number(),
-		saturatedFat: joi.number(),
-		insatiableFat: joi.number(),
-		carbohydrates: joi.number(),
-		sugars: joi.number(),
-		fiber: joi.number(),
-		salt: joi.number(),
-		sodium: joi.number(),
+		energy: positiveNumber,
+		fat: positiveNumber,
+		saturatedFat: positiveNumber,
+		insatiableFat: positiveNumber,
+		carbohydrates: positiveNumber,
+		sugars: positiveNumber,
+		fiber: positiveNumber,
+		salt: positiveNumber,
+		sodium: positiveNumber,
 	});
 
 	forClient = (obj) => {

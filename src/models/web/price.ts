@@ -1,10 +1,11 @@
 import * as joi from 'joi';
 import * as _ from 'lodash';
+import { positiveNumber } from './utils';
 
 export class PriceModel implements Foxx.Model {
 
 	schema = joi.object().keys({
-		value: joi.number(),
+		value: positiveNumber,
 		currency: joi.string(),
 	});
 

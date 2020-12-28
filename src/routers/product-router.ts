@@ -52,8 +52,9 @@ export const router: Foxx.Router = (() => {
 		.summary('Returns all created products.')
 		.description(`Returns all created products.`);
 
-	foxxRouter.delete(':uuid', productService.deleteProduct, 'deleteProduct')
+	foxxRouter.delete(':userUuid/:uuid', productService.deleteProduct, 'deleteProduct')
 		.tag(TAG)
+		.pathParam('userUuid', userUuidSchema)
 		.pathParam('uuid', uuidSchema)
 		.summary('Deletes product with uuid.')
 		.description(`Deletes product with uuid.`);

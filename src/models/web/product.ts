@@ -3,6 +3,7 @@ import * as _ from 'lodash';
 import {Nutriments, NutrimentsModel} from './nutriments';
 import { Price, PriceModel } from './price';
 import { Metadata, MetadataModel } from './metadata';
+import { positiveNumber } from './utils';
 
 export class ProductModel implements Foxx.Model {
 
@@ -14,8 +15,8 @@ export class ProductModel implements Foxx.Model {
 		barcode: joi.string().required(),
 		category: joi.string(),
 		price: new PriceModel().schema,
-		totalQuantity: joi.number(),
-		quantity: joi.number(),
+		totalQuantity: positiveNumber,
+		quantity: positiveNumber,
 		measurementUnit: joi.string(),
 		nutriments: new NutrimentsModel().schema,
 		metadata: new MetadataModel().schema

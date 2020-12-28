@@ -8,6 +8,7 @@ import { ProductMapper } from '../mappers/default-product-mapper';
 import { InternalProduct } from '../models/internal/internal-product';
 import { Container } from '../models/internal/container';
 import { Product } from '../models/web/product';
+import { AssociatedProduct } from '../models/internal/associated-product';
 
 @injectable()
 export class DefaultProductService implements ProductService {
@@ -21,7 +22,7 @@ export class DefaultProductService implements ProductService {
 	// products stanie sie lokalna kolekcja dla użytkowników
 
 	public addProduct = (req: Foxx.Request, res: Foxx.Response): void => {
-		// TODO dodać walidacje
+		// walidacje na razie na podstawie joi()
 		const productToAdd: InternalProduct = this.productMapper.toInternalProduct(req.body);
 		const userUuid: string = req.pathParams.userUuid;
 
@@ -79,14 +80,38 @@ export class DefaultProductService implements ProductService {
 	};
 
 	public readonly deleteProduct = (req: Foxx.Request, res: Foxx.Response): void => {
-		const uuid: string = req.pathParams.uuid;
+		const productUuidToDelete: string = req.pathParams.uuid;
 		const userUuid: string = req.pathParams.userUuid;
 		const container: Container = this.productQueries.findContainer(userUuid);
 
-		if (_.isNil(this.productQueries.deleteProduct(uuid, container.uuid))) {
+		const fullInternalProduct: InternalProduct = this.productQueries.getFullProduct(productUuidToDelete);
+
+		if (_.isNil(fullInternalProduct) || !container.products.includes(fullInternalProduct.uuid)) {
 			res.throw(StatusCodes.NOT_FOUND, 'Product not found');
 		}
 
+		if (_.isEmpty(fullInternalProduct.associatedProducts)) {
+			this.productQueries.deleteFullProduct(productUuidToDelete, container.uuid);
+		} else {
+			this.deleteSubproduct(fullInternalProduct, container, productUuidToDelete);
+		}
+	};
+
+	private deleteSubproduct = (fullInternalProduct: InternalProduct, container: Container, productUuidToDelete: string): void => {
+		const updatedProduct: InternalProduct = _.cloneDeep(fullInternalProduct);
+		const updateContainer: Container = _.cloneDeep(container);
+
+		if (fullInternalProduct.uuid === productUuidToDelete) {
+			const newRootProduct: AssociatedProduct = updatedProduct.associatedProducts.pop();
+			_.merge(updatedProduct, {...newRootProduct});
+			updateContainer.products = updateContainer.products.map(productUuid => productUuid === productUuidToDelete ? updatedProduct.uuid : productUuid);
+		} else {
+			updatedProduct.associatedProducts = _.remove(updatedProduct.associatedProducts,
+				(associatedProduct) => associatedProduct.uuid !== productUuidToDelete);
+		}
+
+		this.productQueries.updateProduct(updatedProduct);
+		this.productQueries.updateContainer(updateContainer);
 	};
 
 	private readonly hasProduct = (container: Container, product: InternalProduct): boolean => {
@@ -107,14 +132,19 @@ export class DefaultProductService implements ProductService {
 		}
 	};
 
-	private readonly emptyOrChanged = (firstProduct: Product | InternalProduct, secondProduct: Product | InternalProduct, valuePath: string): boolean => {
-		const firstProductField: any = _.get(firstProduct, valuePath, null);
-		const secondProductField: any = _.get(secondProduct, valuePath, null);
-		return _.isNil(firstProductField) || !_.eq(firstProductField, secondProductField);
+	private readonly emptyOrChanged = (firstProduct: Product | InternalProduct, secondProduct: Product | InternalProduct, fieldPath: string): boolean => {
+		const firstProductField: any = _.get(firstProduct, fieldPath, null);
+		const secondProductField: any = _.get(secondProduct, fieldPath, null);
+		return this.empty(firstProduct, fieldPath) || !_.eq(firstProductField, secondProductField);
 	};
 
-	private readonly isGreater = (product: Product | InternalProduct, valuePath: string, comparedValue: number): boolean => {
-		const productField: any = _.get(product, valuePath, 0);
+	private readonly empty = (product: Product | InternalProduct, fieldPath: string): boolean => {
+		const productField = _.get(product, fieldPath, null);
+		return _.isNil(productField);
+	};
+
+	private readonly isGreater = (product: Product | InternalProduct, fieldPath: string, comparedValue: number): boolean => {
+		const productField: any = _.get(product, fieldPath, 0);
 		return productField > comparedValue;
 	};
 
