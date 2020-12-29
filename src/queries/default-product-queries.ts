@@ -43,6 +43,14 @@ export class DefaultProductQueries implements ProductQueries {
       	`);
 	};
 
+	public deleteContainer = (containerUuid: string): void => {
+		db._query(aql`
+            FOR container IN ${containersCollection}
+            FILTER container.uuid == ${containerUuid}
+            REMOVE container IN ${containersCollection}
+      	`);
+	};
+
 	public addProduct = (product: Product, containerUuid: string): InternalProduct => {
 		return db._query(aql`
 			FOR container IN ${containersCollection}
@@ -178,6 +186,7 @@ export interface ProductQueries {
 	createContainer: (userUuid: string) => Container;
 	findContainer: (userUuid: string) => Container;
 	updateContainer: (container: Container) => void;
+	deleteContainer: (containerUuid: string) => void;
 	addProduct: (product: Product, containerUuid: string) => InternalProduct;
 	updateProduct: (product: InternalProduct) => void;
 	addAssociatedProduct: (productUuid: string, associatedProduct: AssociatedProduct) => InternalProduct;

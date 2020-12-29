@@ -8,12 +8,15 @@ import { User } from '../models/web/user';
 import { RegisterRequest } from '../models/web/register-request';
 import { UserMapper } from '../mappers/default-user-mapper';
 import { FindUserQuery } from '../models/web/find-user-query';
+import { ProductQueries } from '../queries/default-product-queries';
+import { Container } from '../models/internal/container';
 
 @injectable()
 export class DefaultUserService implements UserService {
 	constructor(
 		@inject(IDENTIFIER.USER_QUERIES) private readonly userQueries: UserQueries,
-		@inject(IDENTIFIER.USER_MAPPER) private readonly userMapper: UserMapper
+		@inject(IDENTIFIER.USER_MAPPER) private readonly userMapper: UserMapper,
+		@inject(IDENTIFIER.PRODUCT_QUERIES) private readonly productQueries: ProductQueries
 	) {}
 
 	public getUser = (req: Foxx.Request, res: Foxx.Response): void => {
@@ -56,6 +59,14 @@ export class DefaultUserService implements UserService {
 		const uuid: string = req.pathParams.uuid;
 		if (_.isNil(this.userQueries.deleteUser(uuid))) {
 			res.throw(StatusCodes.NOT_FOUND, 'User not found.');
+		}
+
+		const container: Container = this.productQueries.findContainer(uuid);
+		console.log('container: ', JSON.stringify(container));
+		if (!_.isNil(container)) {
+			const userProductsUuids: string[] = _.get(container, 'products', []);
+			userProductsUuids.forEach(productUuid => this.productQueries.deleteFullProduct(productUuid, container.uuid));
+			this.productQueries.deleteContainer(container.uuid);
 		}
 
 		res.send(StatusCodes.OK);
