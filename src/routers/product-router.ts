@@ -5,10 +5,12 @@ import IDENTIFIER from '../config-ioc/identifiers';
 import { StatusCodes } from 'http-status-codes';
 import { ProductService } from '../services/default-product-service';
 import { ProductModel } from '../models/web/product';
+import { ProductCardModel } from '../models/web/product-card';
 
 const MIME_TYPE: string = 'application/json';
 const TAG: string = 'Products';
 const uuidSchema = joi.string().required().description('Product uuid');
+const barcodeSchema = joi.string().required().description('Product barcode');
 const userUuidSchema = joi.string().required().description('User uuid');
 
 export const router: Foxx.Router = (() => {
@@ -58,6 +60,14 @@ export const router: Foxx.Router = (() => {
 		.pathParam('uuid', uuidSchema)
 		.summary('Deletes product with uuid.')
 		.description(`Deletes product with uuid.`);
+
+	foxxRouter.get('global/:barcode', productService.findProductCard, 'findProductCard')
+		.tag(TAG)
+		.pathParam('barcode', barcodeSchema)
+		.response(StatusCodes.CREATED, new ProductCardModel(), [MIME_TYPE], 'Global product card response model')
+		.response(StatusCodes.NOT_FOUND, [MIME_TYPE])
+		.summary('Returns Global product card with barcode.')
+		.description(`Returns Global product card with barcode.`);
 
 	return foxxRouter;
 })();

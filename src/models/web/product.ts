@@ -1,24 +1,15 @@
 import * as joi from 'joi';
 import * as _ from 'lodash';
-import {Nutriments, NutrimentsModel} from './nutriments';
-import { Price, PriceModel } from './price';
 import { Metadata, MetadataModel } from './metadata';
 import { positiveNumber } from './utils';
+import { ProductCard, ProductCardModel } from './product-card';
 
 export class ProductModel implements Foxx.Model {
 
 	schema = joi.object().keys({
 		uuid: joi.string(),
-		name: joi.string().required(),
-		brand: joi.string(),
-		photoUrl: joi.string(),
-		barcode: joi.string().required(),
-		category: joi.string(),
-		price: new PriceModel().schema,
-		totalQuantity: positiveNumber,
+		productCard: new ProductCardModel().schema,
 		quantity: positiveNumber,
-		measurementUnit: joi.string(),
-		nutriments: new NutrimentsModel().schema,
 		metadata: new MetadataModel().schema
 	});
 
@@ -33,15 +24,7 @@ export class ProductModel implements Foxx.Model {
 
 export interface Product {
 	uuid: string;
-	name: string;
-	brand: string;
-	photoUrl: string;
-	barcode: string;
-	category: string;
-	price: Price;
-	totalQuantity: number;
+	productCard: ProductCard;
 	quantity: number;
-	measurementUnit: string;
-	nutriments: Nutriments;
 	metadata: Metadata;
 }

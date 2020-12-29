@@ -10,10 +10,10 @@ import { InternalProduct } from '../models/internal/internal-product';
 @injectable()
 export class DefaultProductMapper implements ProductMapper {
 
-	public readonly toAssociatedProduct = (product: Product): AssociatedProduct => {
+	public readonly toAssociatedProduct = (product: InternalProduct): AssociatedProduct => {
 		return {
 			uuid: UTILS_SERVICE.generateUuid(),
-			quantity: product.totalQuantity,
+			quantity: product.quantity,
 			metadata: {
 				createdDate: UTILS_SERVICE.generateDate(),
 				expiryDate: _.get(product, 'metadata.expiryDate', null),
@@ -31,7 +31,8 @@ export class DefaultProductMapper implements ProductMapper {
 	public readonly toInternalProduct = (webProduct: Product): InternalProduct => {
 		return {
 			uuid: UTILS_SERVICE.generateUuid(),
-			...webProduct,
+			productCard: webProduct.productCard,
+			quantity: webProduct.quantity ? webProduct.quantity : webProduct.productCard.totalQuantity,
 			metadata: {
 				createdDate: _.get(webProduct, 'metadata.createdDate', null) ? webProduct.metadata.createdDate : UTILS_SERVICE.generateDate(),
 				expiryDate: _.get(webProduct, 'metadata.expiryDate', null),
@@ -47,8 +48,10 @@ export class DefaultProductMapper implements ProductMapper {
 			return { ...oldFullProduct, ...newProduct };
 		} else {
 			const newAssociatedProduct: AssociatedProduct = {uuid: newProduct.uuid, quantity: _.get(newProduct, 'quantity'),  metadata: _.get(newProduct, 'metadata')};
-			const newProductCard = _.omit(newProduct, ['uuid', 'metadata', 'associatedProducts', 'quantity']); // TODO wywalić po zmianie rozłożeniu modelu
-			const updatedProduct: InternalProduct = { ...oldFullProduct, ...newProductCard };
+			const updatedProduct: InternalProduct = {
+				...oldFullProduct,
+				productCard: {...oldFullProduct.productCard, ...newProduct.productCard}
+			};
 			updatedProduct.associatedProducts = updatedProduct.associatedProducts
 				.map(oldAP => oldAP.uuid === newAssociatedProduct.uuid ? ({uuid: oldAP.uuid, ...newAssociatedProduct}) : oldAP);
 			return updatedProduct;
@@ -57,7 +60,7 @@ export class DefaultProductMapper implements ProductMapper {
 }
 
 export interface ProductMapper {
-	toAssociatedProduct: (product: Product) => AssociatedProduct;
+	toAssociatedProduct: (product: InternalProduct) => AssociatedProduct;
 	toWebProduct: (internalProduct: InternalProduct) => Product;
 	toInternalProduct: (webProduct: Product) => InternalProduct;
 	toUpdatedFullProduct: (oldFullProduct: InternalProduct, newProduct: Product) => InternalProduct;

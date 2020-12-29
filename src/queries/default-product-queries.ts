@@ -1,13 +1,14 @@
 import { injectable } from 'inversify';
 import { DOCUMENT_COLLECTION } from '../models/enums/document-collections';
 import { aql, db } from '@arangodb';
-import { Product } from '../models/web/product';
 import { AssociatedProduct } from '../models/internal/associated-product';
 import { InternalProduct } from '../models/internal/internal-product';
 import { Container } from '../models/internal/container';
 import { UTILS_SERVICE } from '../services/util-service';
+import { ProductCard } from '../models/web/product-card';
 
 const productCollection: ArangoDB.Collection = DOCUMENT_COLLECTION.PRODUCTS.collection;
+const productCardsCollection: ArangoDB.Collection = DOCUMENT_COLLECTION.PRODUCT_CARDS.collection;
 const containersCollection: ArangoDB.Collection = DOCUMENT_COLLECTION.CONTAINERS.collection;
 
 @injectable()
@@ -51,7 +52,7 @@ export class DefaultProductQueries implements ProductQueries {
       	`);
 	};
 
-	public addProduct = (product: Product, containerUuid: string): InternalProduct => {
+	public addProduct = (product: InternalProduct, containerUuid: string): InternalProduct => {
 		return db._query(aql`
 			FOR container IN ${containersCollection}
 			FILTER container.uuid == ${containerUuid}
@@ -86,10 +87,10 @@ export class DefaultProductQueries implements ProductQueries {
       	`).toArray()[0];
 	};
 
-	public findProduct = (barcode: string): InternalProduct => {
+	public findProduct = (containerProductsUuids: string[], barcode: string): InternalProduct => {
 		return db._query(aql`
             FOR product IN ${productCollection}
-            FILTER product.barcode == ${barcode}
+            FILTER product.uuid IN ${containerProductsUuids} && product.productCard.barcode == ${barcode}
             RETURN product
       	`).toArray()[0];
 	};
@@ -103,16 +104,8 @@ export class DefaultProductQueries implements ProductQueries {
                 			FILTER associatedProduct.uuid == ${productUuid}
                 			RETURN {
 	            	  			uuid: associatedProduct.uuid,
-	            				name: product.name,
-	            				brand: product.brand,
-	            				photoUrl: product.photoUrl,
-	            				barcode: product.barcode,
-	            				category: product.category,
-	            				price: product.price,
-	            				totalQuantity: product.totalQuantity,
+	            				productCard: product.productCard,
 	            				quantity: associatedProduct.quantity,
-	            				measurementUnit: product.measurementUnit,
-	            				nutriments: product.nutriments,
 	            				metadata: associatedProduct.metadata
 	            	   		}
             		))
@@ -147,16 +140,8 @@ export class DefaultProductQueries implements ProductQueries {
             	FOR associatedProduct IN mainProduct.associatedProducts
             	RETURN {
             		uuid: associatedProduct.uuid,
-            		name: mainProduct.name,
-            		brand: mainProduct.brand,
-            		photoUrl: mainProduct.photoUrl,
-            		barcode: mainProduct.barcode,
-            		category: mainProduct.category,
-            		price: mainProduct.price,
-            		totalQuantity: mainProduct.totalQuantity,
+            		productCard: mainProduct.productCard,
             		quantity: associatedProduct.quantity,
-            		measurementUnit: mainProduct.measurementUnit,
-            		nutriments: mainProduct.nutriments,
             		metadata: associatedProduct.metadata
             	}
             )
@@ -180,6 +165,32 @@ export class DefaultProductQueries implements ProductQueries {
             RETURN removed
       	`).toArray()[0];
 	};
+
+	public findGlobalProductCard = (barcode: string): ProductCard => {
+		return db._query(aql`
+            FOR productCard IN ${productCardsCollection}
+            FILTER productCard.barcode == ${barcode}
+            RETURN UNSET(productCard, "_id", "_rev", "_key")
+      	`).toArray()[0];
+	};
+
+	public addGlobalProductCard = (productCard: ProductCard): ProductCard => {
+		return db._query(aql`
+            INSERT ${productCard}
+            IN ${productCardsCollection}
+            RETURN NEW
+      	`).toArray()[0];
+	};
+
+	public updateGlobalProductCard = (productCard: ProductCard): void => {
+		db._query(aql`
+            FOR productCard IN ${productCardsCollection}
+			FILTER productCard.barcode == ${productCard.barcode}
+			UPDATE productCard
+			WITH ${productCard}
+			IN ${productCardsCollection}
+      	`);
+	};
 }
 
 export interface ProductQueries {
@@ -187,12 +198,15 @@ export interface ProductQueries {
 	findContainer: (userUuid: string) => Container;
 	updateContainer: (container: Container) => void;
 	deleteContainer: (containerUuid: string) => void;
-	addProduct: (product: Product, containerUuid: string) => InternalProduct;
+	addProduct: (product: InternalProduct, containerUuid: string) => InternalProduct;
 	updateProduct: (product: InternalProduct) => void;
 	addAssociatedProduct: (productUuid: string, associatedProduct: AssociatedProduct) => InternalProduct;
-	findProduct: (productName: string) => InternalProduct;
+	findProduct: (containerProductsUuids: string[], barcode: string) => InternalProduct;
 	getProduct: (productUuid: string) => InternalProduct;
 	getFullProduct: (productUuid: string) => InternalProduct;
 	getAllProductsWithinProduct: (_containerUuid: string) => InternalProduct[];
 	deleteFullProduct: (productUuid: string, containerUuid: string) => InternalProduct;
+	findGlobalProductCard: (barcode: string) => ProductCard;
+	addGlobalProductCard: (productCard: ProductCard) => ProductCard;
+	updateGlobalProductCard: (productCard: ProductCard) => void;
 }
