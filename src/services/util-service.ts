@@ -1,3 +1,5 @@
+import { StatusCodes } from 'http-status-codes';
+
 export const UTILS_SERVICE = {
 
 	generateUuid: (): string => {
@@ -10,5 +12,10 @@ export const UTILS_SERVICE = {
 
 	generateDate: (): string => {
 		return new Date().toISOString().substring(0, 10);
+	},
+
+	finalize: (res: Foxx.Response, payload: any, status: StatusCodes): void => {
+		res.status(status);
+		res.send(payload);
 	}
 };
