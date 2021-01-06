@@ -18,7 +18,7 @@ export class DefaultMediaService implements MediaService {
 
 	public saveImage = (req: Foxx.Request, res: Foxx.Response): void => {
 		const image: Image = req.body;
-		_.set(image, 'uuid', UTILS_SERVICE.generateUuid());
+
 		this.mediaQueries.saveImage(image);
 
 		finalize(res, image, StatusCodes.CREATED);
