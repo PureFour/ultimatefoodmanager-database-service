@@ -54,6 +54,8 @@ export class DefaultProductService implements ProductService {
 		const updatedProduct: InternalProduct = this.productMapper.toUpdatedFullProduct(this.productQueries.getFullProduct(newProduct.uuid), newProduct);
 
 		this.productQueries.updateProduct(updatedProduct);
+
+		this.finalize(res, this.productMapper.toWebProduct(updatedProduct), StatusCodes.OK);
 	};
 
 	public readonly getProduct = (req: Foxx.Request, res: Foxx.Response): void => {
