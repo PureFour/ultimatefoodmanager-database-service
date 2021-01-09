@@ -14,8 +14,7 @@ export const DOCUMENT_COLLECTION = Object.freeze({
 	]),
 
 	CONTAINERS: new Collection('containers', [
-		{type: 'hash', fields: ['uuid'], unique: true, deduplicate: false},
-		{type: 'hash', fields: ['barcode'], unique: true, deduplicate: false}
+		{type: 'hash', fields: ['uuid'], unique: true, deduplicate: false}
 	]),
 
 	IMAGES: new Collection('images', [
