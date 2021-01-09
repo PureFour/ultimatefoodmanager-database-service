@@ -137,12 +137,21 @@ export class DefaultProductService implements ProductService {
 	};
 
 	private mergeOnlyEmptyFields = (target: any, source: any): any => {
+		const targetKeys: string[] = Object.keys(target);
+
 		Object.keys(target).forEach(targetKey => {
 			const targetField: any = target[targetKey];
 			const sourceField: any = source[targetKey];
 			target[targetKey] = typeof targetField === 'object' ?
 				this.mergeOnlyEmptyFields(targetField, sourceField) : this.mergeFieldIfEmpty(targetField, sourceField);
 		});
+
+		Object.keys(source).forEach(sourceKey => {
+			if (!targetKeys.includes(sourceKey)) {
+				target[sourceKey] = source[sourceKey];
+			}
+		});
+
 		return target;
 	};
 
