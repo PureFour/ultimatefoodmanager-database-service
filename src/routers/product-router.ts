@@ -6,12 +6,15 @@ import { StatusCodes } from 'http-status-codes';
 import { ProductService } from '../services/default-product-service';
 import { ProductModel } from '../models/web/product';
 import { ProductCardModel } from '../models/web/product-card';
+import { ContainerModel } from '../models/internal/container';
+import { SharedInfoModel } from '../models/web/shared-info';
 
 const MIME_TYPE: string = 'application/json';
 const TAG: string = 'Products';
 const uuidSchema = joi.string().required().description('Product uuid');
 const barcodeSchema = joi.string().required().description('Product barcode');
 const userUuidSchema = joi.string().required().description('User uuid');
+const containerUuidSchema = joi.string().required().description('Container uuid');
 
 export const router: Foxx.Router = (() => {
 
@@ -68,6 +71,32 @@ export const router: Foxx.Router = (() => {
 		.response(StatusCodes.NOT_FOUND, [MIME_TYPE])
 		.summary('Returns Global product card with barcode.')
 		.description(`Returns Global product card with barcode.`);
+
+	foxxRouter.get('containers/:userUuid', productService.getContainer, 'getContainer')
+		.tag(TAG)
+		.pathParam('userUuid', userUuidSchema)
+		.response(StatusCodes.OK, new ContainerModel(), [MIME_TYPE], 'User container model')
+		.response(StatusCodes.NOT_FOUND, [MIME_TYPE])
+		.summary('Returns User container model.')
+		.description(`Returns User container model.`);
+
+	foxxRouter.get('containers/sharedInfo/:userUuid', productService.getContainerSharedInfo, 'getContainerSharedInfo')
+		.tag(TAG)
+		.pathParam('userUuid', userUuidSchema)
+		.response(StatusCodes.OK, new SharedInfoModel(), [MIME_TYPE], 'Container shared info model')
+		.response(StatusCodes.NOT_FOUND, [MIME_TYPE])
+		.response(StatusCodes.CONFLICT, [MIME_TYPE])
+		.summary('Returns container shared info model.')
+		.description(`Returns container shared info model.`);
+
+	foxxRouter.put('containers/share/:userUuid/:targetContainerUuid', productService.shareContainer, 'shareContainer')
+		.tag(TAG)
+		.pathParam('userUuid', userUuidSchema)
+		.pathParam('targetContainerUuid', containerUuidSchema)
+		.response(StatusCodes.OK, [MIME_TYPE], 'Container shared info model')
+		.response(StatusCodes.NOT_FOUND, [MIME_TYPE])
+		.summary('Share user container.')
+		.description(`Share user container.`);
 
 	return foxxRouter;
 })();

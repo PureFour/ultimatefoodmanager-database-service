@@ -62,10 +62,11 @@ export class DefaultUserService implements UserService {
 		}
 
 		const container: Container = this.productQueries.findContainer(uuid);
-		console.log('container: ', JSON.stringify(container));
+
 		if (!_.isNil(container)) {
-			const userProductsUuids: string[] = _.get(container, 'products', []);
-			userProductsUuids.forEach(productUuid => this.productQueries.deleteFullProduct(productUuid, container.uuid));
+			const userProductsUuids: string[] = _.get(container, 'ownerProducts', []);
+			// TODO poprawić usuwanie wyciągnąć metodę z product-service!
+			userProductsUuids.forEach(productUuid => this.productQueries.deleteFullProduct(productUuid, container.uuid, false));
 			this.productQueries.deleteContainer(container.uuid);
 		}
 

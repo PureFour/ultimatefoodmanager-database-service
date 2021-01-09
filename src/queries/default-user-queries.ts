@@ -13,7 +13,7 @@ export class DefaultUserQueries implements UserQueries {
 		return db._query(aql`
             FOR user IN ${userCollection}
             FILTER user.uuid == ${uuid}
-            RETURN user
+            RETURN UNSET(user, "_id", "_rev", "_key")
       	`).toArray()[0];
 	};
 
@@ -21,7 +21,7 @@ export class DefaultUserQueries implements UserQueries {
 		return db._query(aql`
             FOR user IN ${userCollection}
             FILTER user.email == ${email} || user.login == ${login}
-            RETURN user
+            RETURN UNSET(user, "_id", "_rev", "_key")
       	`).toArray()[0];
 	};
 

@@ -18,7 +18,8 @@ export class DefaultProductMapper implements ProductMapper {
 				createdDate: UTILS_SERVICE.generateDate(),
 				expiryDate: _.get(product, 'metadata.expiryDate', null),
 				synchronized: true,
-				toBeDeleted: false
+				toBeDeleted: false,
+				shared: _.get(product, 'metadata.shared', false)
 			}
 		};
 	};
@@ -37,7 +38,9 @@ export class DefaultProductMapper implements ProductMapper {
 				createdDate: _.get(webProduct, 'metadata.createdDate', null) ? webProduct.metadata.createdDate : UTILS_SERVICE.generateDate(),
 				expiryDate: _.get(webProduct, 'metadata.expiryDate', null),
 				synchronized: true,
-				toBeDeleted: false
+				toBeDeleted: false,
+				shared: _.get(webProduct, 'metadata.shared', false)
+
 			},
 			associatedProducts: []
 		};

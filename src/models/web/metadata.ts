@@ -5,6 +5,7 @@ export class MetadataModel implements Foxx.Model {
 
 	schema = joi.object().keys({
 		synchronized: joi.boolean(),
+		shared: joi.boolean(),
 		toBeDeleted: joi.boolean(),
 		createdDate: joi.string(),
 		expiryDate: joi.string().allow(null)
@@ -21,6 +22,7 @@ export class MetadataModel implements Foxx.Model {
 
 export interface Metadata {
 	synchronized: boolean;
+	shared: boolean;
 	toBeDeleted: boolean;
 	createdDate: string;
 	expiryDate: string;

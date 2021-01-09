@@ -18,8 +18,10 @@ export class DefaultProductQueries implements ProductQueries {
 		return db._query(aql`
             INSERT {
             	uuid: ${UTILS_SERVICE.generateUuid()},
-            	userUuid: ${userUuid},
-            	products: []
+            	ownerUuid: ${userUuid},
+            	ownerProducts: [],
+            	usersUuids: [],
+            	sharedProducts: []
             }
             IN ${containersCollection}
             RETURN NEW
@@ -29,7 +31,15 @@ export class DefaultProductQueries implements ProductQueries {
 	public findContainer = (userUuid: string): Container => {
 		return db._query(aql`
            	FOR container IN ${containersCollection}
-           	FILTER container.userUuid == ${userUuid}
+           	FILTER container.ownerUuid == ${userUuid}
+            RETURN container
+      	`).toArray()[0];
+	};
+
+	public getContainer = (uuid: string): Container => {
+		return db._query(aql`
+           	FOR container IN ${containersCollection}
+           	FILTER container.uuid == ${uuid}
             RETURN container
       	`).toArray()[0];
 	};
@@ -57,7 +67,7 @@ export class DefaultProductQueries implements ProductQueries {
 			FOR container IN ${containersCollection}
 			FILTER container.uuid == ${containerUuid}
 			UPDATE container
-			WITH { products: PUSH(container.products, ${product.uuid}) }
+			WITH ( ${product.metadata.shared} ? {sharedProducts: PUSH(container.sharedProducts, ${product.uuid})} : {ownerProducts: PUSH(container.ownerProducts, ${product.uuid})} )
 			IN ${containersCollection}
 
             INSERT ${product}
@@ -128,6 +138,9 @@ export class DefaultProductQueries implements ProductQueries {
       	`).toArray()[0];
 	};
 
+	/**
+	 * @deprecated Do wywalenia!
+	 */
 	public getAllProductsWithinProduct = (productUuid: string): InternalProduct[] => {
 		return db._query(aql`
 			LET productResult = (
@@ -150,12 +163,12 @@ export class DefaultProductQueries implements ProductQueries {
 	};
 
 
-	public deleteFullProduct = (productUuid: string, containerUuid: string): InternalProduct => {
+	public deleteFullProduct = (productUuid: string, containerUuid: string, shared: boolean): InternalProduct => {
 		return db._query(aql`
 			FOR container IN ${containersCollection}
 			FILTER container.uuid == ${containerUuid}
 			UPDATE container
-			WITH { products: REMOVE_VALUE(container.products, ${productUuid}) }
+			WITH (${shared} ? { sharedProducts: REMOVE_VALUE(container.sharedProducts, ${productUuid}) } : { ownerProducts: REMOVE_VALUE(container.ownerProducts, ${productUuid}) } )
 			IN ${containersCollection}
 
             FOR product IN ${productCollection}
@@ -196,6 +209,7 @@ export class DefaultProductQueries implements ProductQueries {
 export interface ProductQueries {
 	createContainer: (userUuid: string) => Container;
 	findContainer: (userUuid: string) => Container;
+	getContainer: (uuid: string) => Container;
 	updateContainer: (container: Container) => void;
 	deleteContainer: (containerUuid: string) => void;
 	addProduct: (product: InternalProduct, containerUuid: string) => InternalProduct;
@@ -205,7 +219,7 @@ export interface ProductQueries {
 	getProduct: (productUuid: string) => InternalProduct;
 	getFullProduct: (productUuid: string) => InternalProduct;
 	getAllProductsWithinProduct: (_containerUuid: string) => InternalProduct[];
-	deleteFullProduct: (productUuid: string, containerUuid: string) => InternalProduct;
+	deleteFullProduct: (productUuid: string, containerUuid: string, shared: boolean) => InternalProduct;
 	findGlobalProductCard: (barcode: string) => ProductCard;
 	addGlobalProductCard: (productCard: ProductCard) => ProductCard;
 	updateGlobalProductCard: (productCard: ProductCard) => void;

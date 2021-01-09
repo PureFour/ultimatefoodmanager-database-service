@@ -10,15 +10,20 @@ import { Container } from '../models/internal/container';
 import { Product } from '../models/web/product';
 import { AssociatedProduct } from '../models/internal/associated-product';
 import { ProductCard } from '../models/web/product-card';
+import { User } from '../models/web/user';
+import { UserQueries } from '../queries/default-user-queries';
+import { SharedInfo } from '../models/web/shared-info';
 
 @injectable()
 export class DefaultProductService implements ProductService {
 	constructor(
 		@inject(IDENTIFIER.PRODUCT_QUERIES) private readonly productQueries: ProductQueries,
+		@inject(IDENTIFIER.USER_QUERIES) private readonly userQueries: UserQueries,
 		@inject(IDENTIFIER.PRODUCT_MAPPER) private readonly productMapper: ProductMapper,
 	) {
 	}
 
+	// TODO zmienić dodawanie do container dla każdej instancji nawet podProduktu!
 	public addProduct = (req: Foxx.Request, res: Foxx.Response): void => {
 		// walidacje na razie na podstawie joi()
 		const productToAdd: InternalProduct = this.productMapper.toInternalProduct(req.body);
@@ -31,29 +36,24 @@ export class DefaultProductService implements ProductService {
 			container = this.productQueries.createContainer(userUuid);
 		}
 
-		const dbProduct: InternalProduct = this.productQueries.findProduct(container.products, productToAdd.productCard.barcode);
-
-		const createdProduct: InternalProduct = this.hasProduct(container, dbProduct) ?
-			this.addAssociatedProduct(dbProduct, productToAdd, res)
-			: this.productQueries.addProduct(productToAdd, container.uuid);
+		const dbProduct: InternalProduct = this.findProductByBarcode(
+			[...container.ownerProducts, ...container.sharedProducts],
+			productToAdd.productCard.barcode);
+		const createdProduct: InternalProduct = _.isNil(dbProduct) ?
+			this.productQueries.addProduct(productToAdd, container.uuid)
+			: this.addAssociatedProduct(dbProduct, productToAdd, container, res);
 
 		this.finalize(res, this.productMapper.toWebProduct(createdProduct), StatusCodes.CREATED);
 	};
 
-	private addAssociatedProduct = (dbProduct: InternalProduct, newProduct: InternalProduct, res: Foxx.Response): InternalProduct => {
-		this.validateProductToUpdate(newProduct, dbProduct, res);
-
-		const newAssociatedProduct: AssociatedProduct = this.productMapper.toAssociatedProduct(newProduct);
-
-		const updatedProduct: InternalProduct = {
-			...dbProduct,
-			productCard: {...dbProduct.productCard, ...newProduct.productCard},
-			associatedProducts: [...dbProduct.associatedProducts, newAssociatedProduct]
-		};
-
-		this.productQueries.updateProduct(updatedProduct);
-
-		return updatedProduct;
+	private readonly findProductByBarcode = (containerProductsUuids: string[], barcode: string): InternalProduct => {
+		for (const productUuid of containerProductsUuids) {
+			const product: InternalProduct = this.productQueries.getFullProduct(productUuid);
+			if (product.productCard.barcode === barcode) {
+				return product;
+			}
+		}
+		return null;
 	};
 
 	public updateProduct = (req: Foxx.Request, res: Foxx.Response): void => {
@@ -80,7 +80,7 @@ export class DefaultProductService implements ProductService {
 
 
 		if (_.isNil(internalProduct)) {
-			res.throw(StatusCodes.NOT_FOUND, 'Product not found');
+			res.throw(StatusCodes.NOT_FOUND, 'Product not found!');
 		}
 
 		this.finalize(res, this.productMapper.toWebProduct(internalProduct), StatusCodes.OK);
@@ -93,8 +93,18 @@ export class DefaultProductService implements ProductService {
 			res.send([]);
 			return;
 		}
-		const products: InternalProduct[] = container.products.map(productUuid => this.productQueries.getAllProductsWithinProduct(productUuid)).flat(2);
+		const products: InternalProduct[] = this.getAllProductsFromContainer(container);
 		this.finalize(res, products.map(product => this.productMapper.toWebProduct(product)), StatusCodes.OK);
+	};
+
+	private readonly getAllProductsFromContainer = (container: Container): InternalProduct[] => {
+		const ownerProductsUuids: string[] = container.ownerProducts;
+		const sharedProductsUuids: string[] = [...container.sharedProducts, ...container.usersUuids
+			.map(userUuid => this.productQueries.findContainer(userUuid))
+			.map(otherUserContainer => otherUserContainer.sharedProducts)
+			.flat()];
+
+		return [...ownerProductsUuids, ...sharedProductsUuids].map(productUuid => this.productQueries.getProduct(productUuid));
 	};
 
 	public readonly deleteProduct = (req: Foxx.Request, res: Foxx.Response): void => {
@@ -104,12 +114,12 @@ export class DefaultProductService implements ProductService {
 
 		const fullInternalProduct: InternalProduct = this.productQueries.getFullProduct(productUuidToDelete);
 
-		if (_.isNil(fullInternalProduct) || !container.products.includes(fullInternalProduct.uuid)) {
-			res.throw(StatusCodes.NOT_FOUND, 'Product not found');
+		if (_.isNil(fullInternalProduct) || !this.hasProduct(container, fullInternalProduct)) {
+			res.throw(StatusCodes.NOT_FOUND, 'Product not found!');
 		}
 
 		if (_.isEmpty(fullInternalProduct.associatedProducts)) {
-			this.productQueries.deleteFullProduct(productUuidToDelete, container.uuid);
+			this.productQueries.deleteFullProduct(productUuidToDelete, container.uuid, this.isProductShared(fullInternalProduct));
 		} else {
 			this.deleteSubproduct(fullInternalProduct, container, productUuidToDelete);
 		}
@@ -119,10 +129,87 @@ export class DefaultProductService implements ProductService {
 		const productCard: ProductCard = this.productQueries.findGlobalProductCard(req.pathParams.barcode);
 
 		if (_.isNil(productCard)) {
-			res.throw(StatusCodes.NOT_FOUND, 'Product not found');
+			res.throw(StatusCodes.NOT_FOUND, 'Product not found!');
 		}
 
 		this.finalize(res, productCard, StatusCodes.OK);
+	};
+	// TODO przenieść do osobnego serwisu!
+	public readonly getContainer = (req: Foxx.Request, res: Foxx.Response): void => {
+		console.log('getContainer.userUuid: ' + JSON.stringify(req.pathParams.userUuid));
+		const container: Container = this.productQueries.findContainer(req.pathParams.userUuid);
+
+		if (_.isNil(container)) {
+			res.throw(StatusCodes.NOT_FOUND, 'Container not found!');
+		}
+
+		this.finalize(res, container, StatusCodes.OK);
+	};
+
+	public readonly getContainerSharedInfo = (req: Foxx.Request, res: Foxx.Response): void => {
+		const container: Container = this.productQueries.findContainer(req.pathParams.userUuid);
+
+		if (_.isNil(container)) {
+			res.throw(StatusCodes.NOT_FOUND, 'Container not found!');
+		}
+
+		const sharingUsers: User[] = container.usersUuids.map(userUuid => this.userQueries.getUser(userUuid));
+
+		const totalOwnedProducts: number = container.ownerProducts.length;
+
+		const totalSharedProducts: number = container.sharedProducts.length;
+
+		this.finalize(res, <SharedInfo>{sharingUsers, totalSharedProducts, totalOwnedProducts}, StatusCodes.OK);
+	};
+
+	public readonly shareContainer = (req: Foxx.Request, res: Foxx.Response): void => {
+		const container: Container = this.productQueries.findContainer(req.pathParams.userUuid);
+		const targetContainer: Container = this.productQueries.getContainer(req.pathParams.targetContainerUuid);
+
+		this.validateContainersToBeShared(container, targetContainer, res);
+
+		container.usersUuids.push(targetContainer.ownerUuid);
+		targetContainer.usersUuids.push(container.ownerUuid);
+
+		this.productQueries.updateContainer(container);
+		this.productQueries.updateContainer(targetContainer);
+	};
+
+	private readonly validateContainersToBeShared = (container: Container, secondContainer: Container, res: Foxx.Response): void => {
+		if (_.isNil(container) || _.isNil(secondContainer)) {
+			res.throw(StatusCodes.NOT_FOUND, 'One of containers not found!');
+		}
+
+		if (container.usersUuids.includes(secondContainer.ownerUuid)
+			|| secondContainer.usersUuids.includes(container.ownerUuid)
+			|| _.eq(container.uuid, secondContainer.uuid)) {
+			res.throw(StatusCodes.CONFLICT, 'Containers are already shared or there are the same!');
+		}
+	};
+
+	private readonly isProductShared = (product: InternalProduct | Product): boolean => {
+		return _.get(product, 'metadata.shared', false);
+	};
+
+	private addAssociatedProduct = (dbProduct: InternalProduct, newProduct: InternalProduct, container: Container, res: Foxx.Response): InternalProduct => {
+		this.validateProductToUpdate(newProduct, dbProduct, res);
+
+		const newAssociatedProduct: AssociatedProduct = this.productMapper.toAssociatedProduct(newProduct);
+
+		const updatedProduct: InternalProduct = {
+			...dbProduct,
+			productCard: {...dbProduct.productCard, ...newProduct.productCard},
+			associatedProducts: [...dbProduct.associatedProducts, newAssociatedProduct]
+		};
+
+		this.productQueries.updateProduct(updatedProduct);
+
+		this.isProductShared(newProduct) ? container.sharedProducts.push(newAssociatedProduct.uuid)
+			: container.ownerProducts.push(newAssociatedProduct.uuid);
+
+		this.productQueries.updateContainer(container);
+
+		return updatedProduct;
 	};
 
 	private handleGlobalProductCard = (newProductCard: ProductCard): void => {
@@ -173,18 +260,22 @@ export class DefaultProductService implements ProductService {
 		if (fullInternalProduct.uuid === productUuidToDelete) {
 			const newRootProduct: AssociatedProduct = updatedProduct.associatedProducts.pop();
 			_.merge(updatedProduct, {...newRootProduct});
-			updateContainer.products = updateContainer.products.map(productUuid => productUuid === productUuidToDelete ? updatedProduct.uuid : productUuid);
 		} else {
 			updatedProduct.associatedProducts = _.remove(updatedProduct.associatedProducts,
 				(associatedProduct) => associatedProduct.uuid !== productUuidToDelete);
 		}
+
+		this.isProductShared(fullInternalProduct) ?
+			updateContainer.sharedProducts = updateContainer.sharedProducts.filter(productUuid => productUuid !== productUuidToDelete)
+			: updateContainer.ownerProducts = updateContainer.ownerProducts.filter(productUuid => productUuid !== productUuidToDelete);
 
 		this.productQueries.updateProduct(updatedProduct);
 		this.productQueries.updateContainer(updateContainer);
 	};
 
 	private readonly hasProduct = (container: Container, product: InternalProduct): boolean => {
-		return !_.isNil(product) && _.includes(container.products, product.uuid);
+		return !_.isNil(product)
+		&& this.isProductShared(product) ? _.includes(container.sharedProducts, product.uuid) : _.includes(container.ownerProducts, product.uuid);
 	};
 
 	private readonly validateProductToUpdate = (newProduct: Product | InternalProduct, oldProduct: InternalProduct, res: Foxx.Response): void => {
@@ -231,4 +322,7 @@ export interface ProductService {
 	getAllProducts: (req: Foxx.Request, res: Foxx.Response) => void;
 	deleteProduct: (req: Foxx.Request, res: Foxx.Response) => void;
 	findProductCard: (req: Foxx.Request, res: Foxx.Response) => void;
+	getContainer: (req: Foxx.Request, res: Foxx.Response) => void;
+	getContainerSharedInfo: (req: Foxx.Request, res: Foxx.Response) => void;
+	shareContainer: (req: Foxx.Request, res: Foxx.Response) => void;
 }
