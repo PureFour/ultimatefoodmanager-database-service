@@ -98,7 +98,7 @@ export class DefaultProductQueries implements ProductQueries {
 		return db._query(aql`
 			LET result = (
 		    	FOR product IN ${productCollection}
-        			RETURN product.uuid == ${productUuid} ? product : FIRST(
+        			RETURN product.uuid == ${productUuid} ? product : FIRST(SORTED_UNIQUE(
             			FOR associatedProduct IN product.associatedProducts
                 			FILTER associatedProduct.uuid == ${productUuid}
                 			RETURN {
@@ -115,9 +115,9 @@ export class DefaultProductQueries implements ProductQueries {
 	            				nutriments: product.nutriments,
 	            				metadata: associatedProduct.metadata
 	            	   		}
-            		)
+            		))
 			)
-			RETURN LAST(result)
+			RETURN LAST(SORTED_UNIQUE(result))
       	`).toArray()[0];
 	};
 
@@ -125,13 +125,13 @@ export class DefaultProductQueries implements ProductQueries {
 		return db._query(aql`
 			LET result = (
 		    	FOR product IN ${productCollection}
-        			RETURN DISTINCT product.uuid == ${productUuid} ? product : FIRST(
+        			RETURN DISTINCT product.uuid == ${productUuid} ? product : FIRST(SORTED_UNIQUE(
             			FOR associatedProduct IN product.associatedProducts
                 			FILTER associatedProduct.uuid == ${productUuid}
                 			RETURN product
-            		)
+            		))
 			)
-			RETURN LAST(result)
+			RETURN LAST(SORTED_UNIQUE(result))
       	`).toArray()[0];
 	};
 

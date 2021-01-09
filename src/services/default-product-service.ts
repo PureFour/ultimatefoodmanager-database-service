@@ -60,14 +60,14 @@ export class DefaultProductService implements ProductService {
 
 	public readonly getProduct = (req: Foxx.Request, res: Foxx.Response): void => {
 		const uuid: string = req.pathParams.uuid;
-		const product: InternalProduct = this.productQueries.getProduct(uuid);
+		const internalProduct: InternalProduct = this.productQueries.getProduct(uuid);
 
 
-		if (_.isNil(product)) {
+		if (_.isNil(internalProduct)) {
 			res.throw(StatusCodes.NOT_FOUND, 'Product not found');
 		}
 
-		this.finalize(res, this.productMapper.toWebProduct(product), StatusCodes.OK);
+		this.finalize(res, this.productMapper.toWebProduct(internalProduct), StatusCodes.OK);
 	};
 
 	public readonly getAllProducts = (req: Foxx.Request, res: Foxx.Response): void => {
