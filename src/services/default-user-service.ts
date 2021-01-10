@@ -51,7 +51,7 @@ export class DefaultUserService implements UserService {
 
 		const createdUser: User = this.userMapper.toUserModel(registerRequest);
 		this.userQueries.addUser(createdUser);
-
+		this.productQueries.createContainer(createdUser.uuid);
 		this.finalize(res, createdUser, StatusCodes.CREATED);
 	};
 
