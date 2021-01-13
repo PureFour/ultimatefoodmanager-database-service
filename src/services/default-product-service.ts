@@ -106,7 +106,7 @@ export class DefaultProductService implements ProductService {
 		}
 
 		if (_.isEmpty(fullInternalProduct.associatedProducts)) {
-			this.productQueries.deleteFullProduct(productUuidToDelete, container.uuid, this.isProductShared(fullInternalProduct));
+			this.productQueries.deleteFullProduct(productUuidToDelete, container.uuid, this.isProductShared(fullInternalProduct, productUuidToDelete));
 		} else {
 			this.deleteSubproduct(fullInternalProduct, container, productUuidToDelete);
 		}
@@ -204,8 +204,10 @@ export class DefaultProductService implements ProductService {
 		}
 	};
 
-	private readonly isProductShared = (product: InternalProduct | Product): boolean => {
-		return _.get(product, 'metadata.shared', false);
+	private readonly isProductShared = (fullInternalProduct: InternalProduct, productUuid: string): boolean => {
+		return productUuid === fullInternalProduct.uuid ? _.get(fullInternalProduct, 'metadata.shared', false)
+			: fullInternalProduct.associatedProducts.some(associatedProduct => associatedProduct.uuid === productUuid
+			&& _.get(associatedProduct, 'metadata.shared', false));
 	};
 
 	private addAssociatedProduct = (dbProduct: InternalProduct, newProduct: InternalProduct, container: Container, res: Foxx.Response): InternalProduct => {
@@ -221,7 +223,7 @@ export class DefaultProductService implements ProductService {
 
 		this.productQueries.updateProduct(updatedProduct);
 
-		this.isProductShared(newProduct) ? container.sharedProducts.push(newAssociatedProduct.uuid)
+		this.isProductShared(newProduct, newProduct.uuid) ? container.sharedProducts.push(newAssociatedProduct.uuid)
 			: container.ownerProducts.push(newAssociatedProduct.uuid);
 
 		this.productQueries.updateContainer(container);
@@ -282,7 +284,7 @@ export class DefaultProductService implements ProductService {
 				(associatedProduct) => associatedProduct.uuid !== productUuidToDelete);
 		}
 
-		this.isProductShared(fullInternalProduct) ?
+		this.isProductShared(fullInternalProduct, productUuidToDelete) ?
 			updateContainer.sharedProducts = updateContainer.sharedProducts.filter(productUuid => productUuid !== productUuidToDelete)
 			: updateContainer.ownerProducts = updateContainer.ownerProducts.filter(productUuid => productUuid !== productUuidToDelete);
 
