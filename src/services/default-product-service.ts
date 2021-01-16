@@ -23,7 +23,6 @@ export class DefaultProductService implements ProductService {
 	) {
 	}
 
-	// TODO zmienić dodawanie do container dla każdej instancji nawet podProduktu!
 	public addProduct = (req: Foxx.Request, res: Foxx.Response): void => {
 		// walidacje na razie na podstawie joi()
 		const productToAdd: InternalProduct = this.productMapper.toInternalProduct(req.body);
@@ -172,11 +171,21 @@ export class DefaultProductService implements ProductService {
 
 		this.validateContainersToBeShared(container, targetContainer, res);
 
-		container.usersUuids.push(targetContainer.ownerUuid);
+		container.usersUuids.push(targetContainer.ownerUuid, ...targetContainer.usersUuids);
 		targetContainer.usersUuids.push(container.ownerUuid);
+		this.propagateToAllSharingUsers(targetContainer.usersUuids, container.ownerUuid);
 
 		this.productQueries.updateContainer(container);
 		this.productQueries.updateContainer(targetContainer);
+	};
+
+	private propagateToAllSharingUsers = (usersUuids: string[], targetContainerOwnerUuid: string): void => {
+		usersUuids
+			.map(userUuid => this.productQueries.findContainer(userUuid))
+			.forEach(container => {
+				container.usersUuids.push(targetContainerOwnerUuid);
+				this.productQueries.updateContainer(container);
+			});
 	};
 
 	private readonly getAllProductsFromContainer = (container: Container): InternalProduct[] => {
@@ -197,7 +206,8 @@ export class DefaultProductService implements ProductService {
 			res.throw(StatusCodes.NOT_FOUND, 'One of containers not found!');
 		}
 
-		if (container.usersUuids.includes(secondContainer.ownerUuid)
+		if (!_.isEmpty(container.usersUuids)
+			|| container.usersUuids.includes(secondContainer.ownerUuid)
 			|| secondContainer.usersUuids.includes(container.ownerUuid)
 			|| _.eq(container.uuid, secondContainer.uuid)) {
 			res.throw(StatusCodes.CONFLICT, 'Containers are already shared or there are the same!');
