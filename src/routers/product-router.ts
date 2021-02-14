@@ -8,6 +8,7 @@ import { ProductModel } from '../models/web/product';
 import { ProductCardModel } from '../models/web/product-card';
 import { ContainerModel } from '../models/internal/container';
 import { SharedInfoModel } from '../models/web/shared-info';
+import { OutdatedProductWithUserDataModel } from '../models/web/outdatedProductWithUserData';
 
 const MIME_TYPE: string = 'application/json';
 const TAG: string = 'Products';
@@ -48,6 +49,12 @@ export const router: Foxx.Router = (() => {
 		.response(StatusCodes.NOT_FOUND, [MIME_TYPE])
 		.summary('Returns created product with uuid.')
 		.description(`Returns created product with uuid.`);
+
+	foxxRouter.get('outdated', productService.getOutdatedProducts, 'getOutdatedProducts')
+		.tag(TAG)
+		.response(StatusCodes.OK, [new OutdatedProductWithUserDataModel()], [MIME_TYPE], 'List of products')
+		.summary('Returns all outdated products.')
+		.description(`Returns all outdated products.`);
 
 	foxxRouter.get(':userUuid/all', productService.getAllProducts, 'getAllProducts')
 		.tag(TAG)

@@ -44,6 +44,14 @@ export class DefaultProductQueries implements ProductQueries {
       	`).toArray()[0];
 	};
 
+	public getContainersWithProduct = (productUuid: string): Container[] => {
+		return db._query(aql`
+           	FOR container IN ${containersCollection}
+           	FILTER POSITION(container.ownerProducts, ${productUuid}) || POSITION(container.sharedProducts, ${productUuid})
+            RETURN container
+      	`).toArray();
+	};
+
 	public updateContainer = (newContainer: Container): void => {
 		db._query(aql`
             FOR container IN ${containersCollection}
@@ -138,6 +146,28 @@ export class DefaultProductQueries implements ProductQueries {
       	`).toArray()[0];
 	};
 
+	public getAllOutdatedProducts = (): InternalProduct[] => {
+		return db._query(aql`
+			LET outdatedRootProducts = (
+				FOR product IN ${productCollection}
+				FILTER product.metadata.expiryDate <= DATE_ADD(DATE_NOW(), 1, "day")
+				RETURN product
+			)
+			LET outdatedAssociatedProduct = (
+				FOR product IN ${productCollection}
+				FOR associatedProduct IN product.associatedProducts
+				FILTER associatedProduct.metadata.expiryDate <= DATE_ADD(DATE_NOW(), 1, "day")
+				RETURN {
+            		uuid: associatedProduct.uuid,
+            		productCard: product.productCard,
+            		quantity: associatedProduct.quantity,
+            		metadata: associatedProduct.metadata
+            	}
+			)
+			RETURN FLATTEN(PUSH(outdatedAssociatedProduct, outdatedRootProducts), 2)
+      	`).toArray()[0];
+	};
+
 	/**
 	 * @deprecated Do wywalenia!
 	 */
@@ -210,6 +240,7 @@ export interface ProductQueries {
 	createContainer: (userUuid: string) => Container;
 	findContainer: (userUuid: string) => Container;
 	getContainer: (uuid: string) => Container;
+	getContainersWithProduct: (productUuid: string) => Container[];
 	updateContainer: (container: Container) => void;
 	deleteContainer: (containerUuid: string) => void;
 	addProduct: (product: InternalProduct, containerUuid: string) => InternalProduct;
@@ -219,6 +250,7 @@ export interface ProductQueries {
 	getProduct: (productUuid: string) => InternalProduct;
 	getFullProduct: (productUuid: string) => InternalProduct;
 	getAllProductsWithinProduct: (_containerUuid: string) => InternalProduct[];
+	getAllOutdatedProducts: () => InternalProduct[];
 	deleteFullProduct: (productUuid: string, containerUuid: string, shared: boolean) => InternalProduct;
 	findGlobalProductCard: (barcode: string) => ProductCard;
 	addGlobalProductCard: (productCard: ProductCard) => ProductCard;

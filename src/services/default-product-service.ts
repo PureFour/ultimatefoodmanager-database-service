@@ -13,6 +13,7 @@ import { ProductCard } from '../models/web/product-card';
 import { User } from '../models/web/user';
 import { UserQueries } from '../queries/default-user-queries';
 import { SharedInfo } from '../models/web/shared-info';
+import { OutdatedProductWithUserData } from '../models/web/outdatedProductWithUserData';
 
 @injectable()
 export class DefaultProductService implements ProductService {
@@ -80,6 +81,19 @@ export class DefaultProductService implements ProductService {
 		}
 
 		this.finalize(res, this.productMapper.toWebProduct(internalProduct), StatusCodes.OK);
+	};
+
+	public readonly getOutdatedProducts = (_req: Foxx.Request, res: Foxx.Response): void => {
+		const outdatedProducts: InternalProduct[] = this.productQueries.getAllOutdatedProducts();
+		console.log('outdatedProducts: ' + JSON.stringify(outdatedProducts));
+		const outdatedProductsWithUsers: OutdatedProductWithUserData[] = [];
+		outdatedProducts.forEach(outdatedProduct => {
+			outdatedProductsWithUsers.push({
+				outdatedProduct: this.productMapper.toWebProduct(outdatedProduct),
+				users: this.getProductOwners(outdatedProduct.uuid)
+			});
+		});
+		this.finalize(res, outdatedProductsWithUsers, StatusCodes.OK);
 	};
 
 	public readonly getAllProducts = (req: Foxx.Request, res: Foxx.Response): void => {
@@ -302,6 +316,11 @@ export class DefaultProductService implements ProductService {
 		this.productQueries.updateContainer(updateContainer);
 	};
 
+	private getProductOwners = (productUuid: string): User[] => {
+		const containersWithProduct: Container[] = this.productQueries.getContainersWithProduct(productUuid);
+		return containersWithProduct.map(container => this.userQueries.getUser(container.ownerUuid));
+	};
+
 	private readonly hasProductInContainer = (container: Container, productUuid: string): boolean => {
 		const allProductsUuids: string[] = [...container.ownerProducts, ...container.sharedProducts];
 		return _.includes(allProductsUuids, productUuid);
@@ -348,6 +367,7 @@ export interface ProductService {
 	addProduct: (req: Foxx.Request, res: Foxx.Response) => void;
 	updateProduct: (req: Foxx.Request, res: Foxx.Response) => void;
 	getProduct: (req: Foxx.Request, res: Foxx.Response) => void;
+	getOutdatedProducts: (req: Foxx.Request, res: Foxx.Response) => void;
 	getAllProducts: (req: Foxx.Request, res: Foxx.Response) => void;
 	deleteProduct: (req: Foxx.Request, res: Foxx.Response) => void;
 	findProductCard: (req: Foxx.Request, res: Foxx.Response) => void;
