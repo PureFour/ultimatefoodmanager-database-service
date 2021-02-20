@@ -13,7 +13,8 @@ export class DefaultUserMapper implements UserMapper {
 			uuid: UTILS_SERVICE.generateUuid(),
 			email: registerRequest.email,
 			login: registerRequest.login,
-			password: registerRequest.password // password encoding...
+			password: registerRequest.password,
+			notificationToken: registerRequest.notificationToken
 		};
 	};
 }

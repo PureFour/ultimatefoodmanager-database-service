@@ -7,7 +7,8 @@ export class UserModel implements Foxx.Model {
 		uuid: joi.string(),
 		email: joi.string(),
 		login: joi.string(),
-		password: joi.string()
+		password: joi.string(),
+		notificationToken: joi.string()
 	});
 
 	forClient = (obj) => {
@@ -24,4 +25,5 @@ export interface User {
 	email: string;
 	login: string;
 	password: string;
+	notificationToken: string;
 }
