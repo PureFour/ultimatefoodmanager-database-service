@@ -33,5 +33,5 @@ deploy:
         - master
     script:
         - ./src/scripts/build.sh
-        - cd ~/builds/ChyqycUz/0/ultimatefoodmanager/main-service
+        - cd ~/builds/Rn_sEv9n/0/ultimatefoodmanager/main-service
         - docker-compose up -d --remove-orphans
