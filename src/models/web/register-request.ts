@@ -6,7 +6,8 @@ export class RegisterRequestModel implements Foxx.Model {
 	schema = joi.object().keys({
 		email: joi.string(),
 		login: joi.string(),
-		password: joi.string()
+		password: joi.string(),
+		notificationToken: joi.string()
 	});
 
 	forClient = (obj) => {
@@ -22,4 +23,5 @@ export interface RegisterRequest {
 	email: string;
 	login: string;
 	password: string;
+	notificationToken: string;
 }
