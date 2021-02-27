@@ -44,12 +44,12 @@ export class DefaultProductQueries implements ProductQueries {
       	`).toArray()[0];
 	};
 
-	public getContainersWithProduct = (productUuid: string): Container[] => {
+	public getContainersWithProduct = (productUuid: string): Container => {
 		return db._query(aql`
            	FOR container IN ${containersCollection}
            	FILTER POSITION(container.ownerProducts, ${productUuid}) || POSITION(container.sharedProducts, ${productUuid})
             RETURN container
-      	`).toArray();
+      	`).toArray()[0];
 	};
 
 	public updateContainer = (newContainer: Container): void => {
@@ -75,7 +75,7 @@ export class DefaultProductQueries implements ProductQueries {
 			FOR container IN ${containersCollection}
 			FILTER container.uuid == ${containerUuid}
 			UPDATE container
-			WITH ( ${product.metadata.shared} ? {sharedProducts: PUSH(container.sharedProducts, ${product.uuid})} : {ownerProducts: PUSH(container.ownerProducts, ${product.uuid})} )
+			WITH ( {ownerProducts: PUSH(container.ownerProducts, ${product.uuid})} )
 			IN ${containersCollection}
 
             INSERT ${product}
@@ -83,6 +83,21 @@ export class DefaultProductQueries implements ProductQueries {
             RETURN NEW
       	`).toArray()[0];
 	};
+
+	public addSharedProduct = (product: InternalProduct, containersUuids: string[]): InternalProduct => {
+		return db._query(aql`
+			FOR container IN ${containersCollection}
+			FILTER container.uuid IN ${containersUuids}
+			UPDATE container
+			WITH ( {sharedProducts: PUSH(container.sharedProducts, ${product.uuid})} )
+			IN ${containersCollection}
+
+            INSERT ${product}
+            IN ${productCollection}
+            RETURN NEW
+      	`).toArray()[0];
+	};
+
 
 	public updateProduct = (newProduct: InternalProduct): void => {
 		db._query(aql`
@@ -150,13 +165,13 @@ export class DefaultProductQueries implements ProductQueries {
 		return db._query(aql`
 			LET outdatedRootProducts = (
 				FOR product IN ${productCollection}
-				FILTER product.metadata.expiryDate <= DATE_ADD(DATE_NOW(), 1, "day")
+				FILTER product.metadata.expiryDate <= DATE_ADD(DATE_NOW(), 3, "day")
 				RETURN product
 			)
 			LET outdatedAssociatedProduct = (
 				FOR product IN ${productCollection}
 				FOR associatedProduct IN product.associatedProducts
-				FILTER associatedProduct.metadata.expiryDate <= DATE_ADD(DATE_NOW(), 1, "day")
+				FILTER associatedProduct.metadata.expiryDate <= DATE_ADD(DATE_NOW(), 3, "day")
 				RETURN {
             		uuid: associatedProduct.uuid,
             		productCard: product.productCard,
@@ -240,7 +255,7 @@ export interface ProductQueries {
 	createContainer: (userUuid: string) => Container;
 	findContainer: (userUuid: string) => Container;
 	getContainer: (uuid: string) => Container;
-	getContainersWithProduct: (productUuid: string) => Container[];
+	getContainersWithProduct: (productUuid: string) => Container;
 	updateContainer: (container: Container) => void;
 	deleteContainer: (containerUuid: string) => void;
 	addProduct: (product: InternalProduct, containerUuid: string) => InternalProduct;

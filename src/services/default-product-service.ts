@@ -25,7 +25,6 @@ export class DefaultProductService implements ProductService {
 	}
 
 	public addProduct = (req: Foxx.Request, res: Foxx.Response): void => {
-		// walidacje na razie na podstawie joi()
 		const productToAdd: InternalProduct = this.productMapper.toInternalProduct(req.body);
 		const userUuid: string = req.pathParams.userUuid;
 
@@ -85,7 +84,6 @@ export class DefaultProductService implements ProductService {
 
 	public readonly getOutdatedProducts = (_req: Foxx.Request, res: Foxx.Response): void => {
 		const outdatedProducts: InternalProduct[] = this.productQueries.getAllOutdatedProducts();
-		console.log('outdatedProducts: ' + JSON.stringify(outdatedProducts));
 		const outdatedProductsWithUsers: OutdatedProductWithUserData[] = [];
 		outdatedProducts.forEach(outdatedProduct => {
 			outdatedProductsWithUsers.push({
@@ -152,7 +150,7 @@ export class DefaultProductService implements ProductService {
 		this.finalize(res, productCard, StatusCodes.OK);
 	};
 
-	// TODO przenieść do osobnego serwisu!
+
 	public readonly getContainer = (req: Foxx.Request, res: Foxx.Response): void => {
 
 		const container: Container = this.productQueries.findContainer(req.pathParams.userUuid);
@@ -317,8 +315,9 @@ export class DefaultProductService implements ProductService {
 	};
 
 	private getProductOwners = (productUuid: string): User[] => {
-		const containersWithProduct: Container[] = this.productQueries.getContainersWithProduct(productUuid);
-		return containersWithProduct.map(container => this.userQueries.getUser(container.ownerUuid));
+		const containerWithProduct: Container = this.productQueries.getContainersWithProduct(productUuid);
+		return [containerWithProduct.ownerUuid, ...containerWithProduct.usersUuids]
+			.map(ownerUuid => this.userQueries.getUser(ownerUuid));
 	};
 
 	private readonly hasProductInContainer = (container: Container, productUuid: string): boolean => {
