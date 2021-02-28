@@ -67,7 +67,19 @@ export class DefaultProductService implements ProductService {
 
 		this.productQueries.updateProduct(updatedProduct);
 
+		if (!_.get(oldProduct, 'metadata.shared')
+			&& _.get(newProduct, 'metadata.shared')) {
+			this.shareProductToAllUsers(newProduct.uuid);
+		}
+
 		this.finalize(res, this.productMapper.toWebProduct(updatedProduct), StatusCodes.OK);
+	};
+
+	private shareProductToAllUsers = (productUuid: string): void => {
+		const productOwnerContainer: Container = this.productQueries.getContainersWithProduct(productUuid);
+		_.remove(productOwnerContainer.ownerProducts, (uuid) => uuid === productUuid);
+		productOwnerContainer.sharedProducts.push(productUuid);
+		this.productQueries.updateContainer(productOwnerContainer);
 	};
 
 	public readonly getProduct = (req: Foxx.Request, res: Foxx.Response): void => {
