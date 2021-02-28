@@ -75,7 +75,7 @@ export class DefaultProductQueries implements ProductQueries {
 			FOR container IN ${containersCollection}
 			FILTER container.uuid == ${containerUuid}
 			UPDATE container
-			WITH ( {ownerProducts: PUSH(container.ownerProducts, ${product.uuid})} )
+			WITH ( ${product.metadata.shared} ? {sharedProducts: PUSH(container.sharedProducts, ${product.uuid})} : {ownerProducts: PUSH(container.ownerProducts, ${product.uuid})} )
 			IN ${containersCollection}
 
             INSERT ${product}
@@ -83,21 +83,6 @@ export class DefaultProductQueries implements ProductQueries {
             RETURN NEW
       	`).toArray()[0];
 	};
-
-	public addSharedProduct = (product: InternalProduct, containersUuids: string[]): InternalProduct => {
-		return db._query(aql`
-			FOR container IN ${containersCollection}
-			FILTER container.uuid IN ${containersUuids}
-			UPDATE container
-			WITH ( {sharedProducts: PUSH(container.sharedProducts, ${product.uuid})} )
-			IN ${containersCollection}
-
-            INSERT ${product}
-            IN ${productCollection}
-            RETURN NEW
-      	`).toArray()[0];
-	};
-
 
 	public updateProduct = (newProduct: InternalProduct): void => {
 		db._query(aql`
