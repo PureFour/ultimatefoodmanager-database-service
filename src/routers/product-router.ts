@@ -42,6 +42,15 @@ export const router: Foxx.Router = (() => {
 		.summary('Returns updated product.')
 		.description(`Returns updated product.`);
 
+	foxxRouter.put(':userUuid/synchronizeAll', productService.synchronizeAll, 'synchronizeAll')
+		.tag(TAG)
+		.body([new ProductModel()], [MIME_TYPE])
+		.response(StatusCodes.OK, [new ProductModel()], [MIME_TYPE], 'Products response model')
+		.response(StatusCodes.BAD_REQUEST, [MIME_TYPE])
+		.response(StatusCodes.NOT_FOUND, [MIME_TYPE])
+		.summary('Returns synchronized product.')
+		.description(`Returns synchronized product.`);
+
 	foxxRouter.get(':uuid', productService.getProduct, 'getProduct')
 		.tag(TAG)
 		.pathParam('uuid', uuidSchema)

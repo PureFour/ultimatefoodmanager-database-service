@@ -25,9 +25,12 @@ export class DefaultProductService implements ProductService {
 	}
 
 	public addProduct = (req: Foxx.Request, res: Foxx.Response): void => {
-		const productToAdd: InternalProduct = this.productMapper.toInternalProduct(req.body);
-		const userUuid: string = req.pathParams.userUuid;
+		const createdProduct: InternalProduct = this._addProduct(req.body, req.pathParams.userUuid, res);
+		this.finalize(res, this.productMapper.toWebProduct(createdProduct), StatusCodes.CREATED);
+	};
 
+	private _addProduct = (product: Product, userUuid: string, res: Foxx.Response): InternalProduct => {
+		const productToAdd: InternalProduct = this.productMapper.toInternalProduct(product);
 		this.handleGlobalProductCard(productToAdd.productCard);
 
 		const container: Container = this.productQueries.findContainer(userUuid);
@@ -35,11 +38,9 @@ export class DefaultProductService implements ProductService {
 		const dbProduct: InternalProduct = this.findProductByBarcode(
 			[...container.ownerProducts, ...container.sharedProducts],
 			productToAdd.productCard.barcode);
-		const createdProduct: InternalProduct = _.isNil(dbProduct) ?
+		return _.isNil(dbProduct) ?
 			this.productQueries.addProduct(productToAdd, container.uuid)
 			: this.addAssociatedProduct(dbProduct, productToAdd, container, res);
-
-		this.finalize(res, this.productMapper.toWebProduct(createdProduct), StatusCodes.CREATED);
 	};
 
 	private readonly findProductByBarcode = (containerProductsUuids: string[], barcode: string): InternalProduct => {
@@ -53,33 +54,50 @@ export class DefaultProductService implements ProductService {
 	};
 
 	public updateProduct = (req: Foxx.Request, res: Foxx.Response): void => {
-		const newProduct: Product = req.body;
-
-		if (_.isNil(newProduct.uuid)) {
-			res.throw(StatusCodes.BAD_REQUEST, 'Product uuid must be filled!');
-		}
-		const oldProduct: InternalProduct = this.productQueries.getProduct(newProduct.uuid);
-
-		this.validateProductToUpdate(newProduct, oldProduct, res);
-		this.handleGlobalProductCard(newProduct.productCard);
-
-		const updatedProduct: InternalProduct = this.productMapper.toUpdatedFullProduct(this.productQueries.getFullProduct(newProduct.uuid), newProduct);
-
-		this.productQueries.updateProduct(updatedProduct);
-
-		if (!_.get(oldProduct, 'metadata.shared')
-			&& _.get(newProduct, 'metadata.shared')) {
-			this.shareProductToAllUsers(newProduct.uuid);
-		}
-
+		const updatedProduct: InternalProduct = this._updateProduct(req.body, res);
 		this.finalize(res, this.productMapper.toWebProduct(updatedProduct), StatusCodes.OK);
 	};
 
-	private shareProductToAllUsers = (productUuid: string): void => {
-		const productOwnerContainer: Container = this.productQueries.getContainersWithProduct(productUuid);
-		_.remove(productOwnerContainer.ownerProducts, (uuid) => uuid === productUuid);
-		productOwnerContainer.sharedProducts.push(productUuid);
-		this.productQueries.updateContainer(productOwnerContainer);
+	private _updateProduct = (productToUpdate: Product, res: Foxx.Response): InternalProduct => {
+		if (_.isNil(productToUpdate.uuid)) {
+			res.throw(StatusCodes.BAD_REQUEST, 'Product uuid must be filled!');
+		}
+		const oldProduct: InternalProduct = this.productQueries.getProduct(productToUpdate.uuid);
+
+		this.validateProductToUpdate(productToUpdate, oldProduct, res);
+		this.handleGlobalProductCard(productToUpdate.productCard);
+
+		const updatedProduct: InternalProduct = this.productMapper.toUpdatedFullProduct(this.productQueries.getFullProduct(productToUpdate.uuid), productToUpdate);
+		this.markAsSynchronized(updatedProduct);
+		this.productQueries.updateProduct(updatedProduct);
+
+		if (!_.get(oldProduct, 'metadata.shared')
+			&& _.get(productToUpdate, 'metadata.shared')) {
+			this.shareProductToAllUsers(productToUpdate.uuid);
+		}
+		return updatedProduct;
+	};
+
+	public synchronizeAll = (req: Foxx.Request, res: Foxx.Response): void => {
+		const userUuid: string = req.pathParams.userUuid;
+		const container: Container = this.productQueries.findContainer(userUuid);
+		const productsToSync: Product[] = req.body;
+
+		this.upsertProducts(productsToSync, userUuid, res);
+		const userProducts: InternalProduct[] = _.isNil(container) ? [] : this.getAllProductsFromContainer(container);
+
+		this.finalize(res, userProducts.map(product => this.productMapper.toWebProduct(product)), StatusCodes.OK);
+	};
+
+	private upsertProducts = (products: Product[], userUuid: string, res: Foxx.Response): void => {
+		products.forEach(product => {
+			if (_.isNil(this.productQueries.getProduct(product.uuid))) {
+				this._addProduct(product, userUuid, res);
+			} else {
+				_.get(product, 'metadata.toBeDeleted') ? this._deleteProduct(product, userUuid, res)
+					: this._updateProduct(product, res);
+			}
+		});
 	};
 
 	public readonly getProduct = (req: Foxx.Request, res: Foxx.Response): void => {
@@ -118,8 +136,11 @@ export class DefaultProductService implements ProductService {
 	};
 
 	public readonly deleteProduct = (req: Foxx.Request, res: Foxx.Response): void => {
-		const productUuidToDelete: string = req.pathParams.uuid;
-		const userUuid: string = req.pathParams.userUuid;
+		this._deleteProduct(req.body, req.pathParams.userUuid, res);
+	};
+
+	private _deleteProduct = (product: Product, userUuid: string, res: Foxx.Response): void => {
+		const productUuidToDelete: string = product.uuid;
 		const container: Container = this.findContainerWithProduct(userUuid, productUuidToDelete);
 
 		const fullInternalProduct: InternalProduct = this.productQueries.getFullProduct(productUuidToDelete);
@@ -135,23 +156,6 @@ export class DefaultProductService implements ProductService {
 		}
 	};
 
-	private readonly findContainerWithProduct = (ownerUuid: string, productUuid: string): Container => {
-		const requestCallerContainer: Container = this.productQueries.findContainer(ownerUuid);
-
-		if (this.hasProductInContainer(requestCallerContainer, productUuid)) {
-			return requestCallerContainer;
-		}
-
-		for (const sharingUserUuid of requestCallerContainer.usersUuids) {
-			const sharingUserContainer: Container = this.productQueries.findContainer(sharingUserUuid);
-			if (_.includes(sharingUserContainer.sharedProducts, productUuid)) {
-				return sharingUserContainer;
-			}
-		}
-
-		return null;
-	};
-
 	public readonly findProductCard = (req: Foxx.Request, res: Foxx.Response): void => {
 		const productCard: ProductCard = this.productQueries.findGlobalProductCard(req.pathParams.barcode);
 
@@ -161,7 +165,6 @@ export class DefaultProductService implements ProductService {
 
 		this.finalize(res, productCard, StatusCodes.OK);
 	};
-
 
 	public readonly getContainer = (req: Foxx.Request, res: Foxx.Response): void => {
 
@@ -173,6 +176,7 @@ export class DefaultProductService implements ProductService {
 
 		this.finalize(res, container, StatusCodes.OK);
 	};
+
 	public readonly getContainerSharedInfo = (req: Foxx.Request, res: Foxx.Response): void => {
 		const container: Container = this.productQueries.findContainer(req.pathParams.userUuid);
 
@@ -201,6 +205,36 @@ export class DefaultProductService implements ProductService {
 
 		this.productQueries.updateContainer(container);
 		this.productQueries.updateContainer(targetContainer);
+	};
+
+	private markAsSynchronized = (product: InternalProduct): void => {
+		_.set(product, 'metadata.synchronized', true);
+		product.associatedProducts.forEach(associatedProduct =>
+			_.set(associatedProduct, 'metadata.synchronized', true));
+	}
+
+	private readonly findContainerWithProduct = (ownerUuid: string, productUuid: string): Container => {
+		const requestCallerContainer: Container = this.productQueries.findContainer(ownerUuid);
+
+		if (this.hasProductInContainer(requestCallerContainer, productUuid)) {
+			return requestCallerContainer;
+		}
+
+		for (const sharingUserUuid of requestCallerContainer.usersUuids) {
+			const sharingUserContainer: Container = this.productQueries.findContainer(sharingUserUuid);
+			if (_.includes(sharingUserContainer.sharedProducts, productUuid)) {
+				return sharingUserContainer;
+			}
+		}
+
+		return null;
+	};
+
+	private shareProductToAllUsers = (productUuid: string): void => {
+		const productOwnerContainer: Container = this.productQueries.getContainersWithProduct(productUuid);
+		_.remove(productOwnerContainer.ownerProducts, (uuid) => uuid === productUuid);
+		productOwnerContainer.sharedProducts.push(productUuid);
+		this.productQueries.updateContainer(productOwnerContainer);
 	};
 
 	private propagateToAllSharingUsers = (usersUuids: string[], targetContainerOwnerUuid: string): void => {
@@ -377,6 +411,7 @@ export class DefaultProductService implements ProductService {
 export interface ProductService {
 	addProduct: (req: Foxx.Request, res: Foxx.Response) => void;
 	updateProduct: (req: Foxx.Request, res: Foxx.Response) => void;
+	synchronizeAll: (req: Foxx.Request, res: Foxx.Response) => void;
 	getProduct: (req: Foxx.Request, res: Foxx.Response) => void;
 	getOutdatedProducts: (req: Foxx.Request, res: Foxx.Response) => void;
 	getAllProducts: (req: Foxx.Request, res: Foxx.Response) => void;

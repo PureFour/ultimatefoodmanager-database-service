@@ -168,31 +168,6 @@ export class DefaultProductQueries implements ProductQueries {
       	`).toArray()[0];
 	};
 
-	/**
-	 * @deprecated Do wywalenia!
-	 */
-	public getAllProductsWithinProduct = (productUuid: string): InternalProduct[] => {
-		return db._query(aql`
-			LET productResult = (
-            	FOR product IN ${productCollection}
-            	FILTER product.uuid == ${productUuid}
-            	RETURN product
-            )
-            LET mainProduct = FIRST(productResult)
-            LET associatedProducts = (
-            	FOR associatedProduct IN mainProduct.associatedProducts
-            	RETURN {
-            		uuid: associatedProduct.uuid,
-            		productCard: mainProduct.productCard,
-            		quantity: associatedProduct.quantity,
-            		metadata: associatedProduct.metadata
-            	}
-            )
-            RETURN PUSH(associatedProducts, UNSET(mainProduct, "associatedProducts"))
-      	`).toArray();
-	};
-
-
 	public deleteFullProduct = (productUuid: string, containerUuid: string, shared: boolean): InternalProduct => {
 		return db._query(aql`
 			FOR container IN ${containersCollection}
@@ -249,7 +224,6 @@ export interface ProductQueries {
 	findProduct: (containerProductsUuids: string[], barcode: string) => InternalProduct;
 	getProduct: (productUuid: string) => InternalProduct;
 	getFullProduct: (productUuid: string) => InternalProduct;
-	getAllProductsWithinProduct: (_containerUuid: string) => InternalProduct[];
 	getAllOutdatedProducts: () => InternalProduct[];
 	deleteFullProduct: (productUuid: string, containerUuid: string, shared: boolean) => InternalProduct;
 	findGlobalProductCard: (barcode: string) => ProductCard;
