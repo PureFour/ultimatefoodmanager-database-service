@@ -1,8 +1,8 @@
 import { injectable } from 'inversify';
 import 'reflect-metadata';
 
-import { User } from '../models/web/user';
-import { RegisterRequest } from '../models/web/register-request';
+import { User } from '../models/web/user/user';
+import { RegisterRequest } from '../models/web/user/register-request';
 import { UTILS_SERVICE } from '../services/util-service';
 
 @injectable()

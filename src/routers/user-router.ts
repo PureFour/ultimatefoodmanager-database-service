@@ -4,9 +4,9 @@ import { container } from '../config-ioc/container';
 import { UserService } from '../services/default-user-service';
 import IDENTIFIER from '../config-ioc/identifiers';
 import { StatusCodes } from 'http-status-codes';
-import { UserModel } from '../models/web/user';
-import { RegisterRequestModel } from '../models/web/register-request';
-import { FindUserQueryModel } from '../models/web/find-user-query';
+import { UserModel } from '../models/web/user/user';
+import { RegisterRequestModel } from '../models/web/user/register-request';
+import { FindUserQueryModel } from '../models/web/user/find-user-query';
 
 const MIME_TYPE = 'application/json';
 const TAG: string = 'Users';

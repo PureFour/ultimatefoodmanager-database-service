@@ -2,7 +2,7 @@ import * as joi from 'joi';
 import * as _ from 'lodash';
 import {Nutriments, NutrimentsModel} from './nutriments';
 import { Price, PriceModel } from './price';
-import { positiveNumber } from './utils';
+import { positiveNumber } from '../utils';
 
 export class ProductCardModel implements Foxx.Model {
 

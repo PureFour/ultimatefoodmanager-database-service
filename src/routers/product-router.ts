@@ -4,11 +4,12 @@ import { container } from '../config-ioc/container';
 import IDENTIFIER from '../config-ioc/identifiers';
 import { StatusCodes } from 'http-status-codes';
 import { ProductService } from '../services/default-product-service';
-import { ProductModel } from '../models/web/product';
-import { ProductCardModel } from '../models/web/product-card';
+import { ProductModel } from '../models/web/product/product';
+import { ProductCardModel } from '../models/web/product/product-card';
 import { ContainerModel } from '../models/internal/container';
-import { SharedInfoModel } from '../models/web/shared-info';
-import { OutdatedProductWithUserDataModel } from '../models/web/outdatedProductWithUserData';
+import { SharedInfoModel } from '../models/web/user/shared-info';
+import { OutdatedProductWithUserDataModel } from '../models/web/product/outdatedProductWithUserData';
+import { QueryFilterModel } from '../models/web/filters/query-filter';
 
 const MIME_TYPE: string = 'application/json';
 const TAG: string = 'Products';
@@ -65,9 +66,10 @@ export const router: Foxx.Router = (() => {
 		.summary('Returns all outdated products.')
 		.description(`Returns all outdated products.`);
 
-	foxxRouter.get(':userUuid/all', productService.getAllProducts, 'getAllProducts')
+	foxxRouter.post(':userUuid/all', productService.getAllProducts, 'getAllProducts')
 		.tag(TAG)
 		.pathParam('userUuid', userUuidSchema)
+		.body(new QueryFilterModel(), [MIME_TYPE])
 		.response(StatusCodes.CREATED, [new ProductModel()], [MIME_TYPE], 'List of products')
 		.response(StatusCodes.NOT_FOUND, [MIME_TYPE])
 		.summary('Returns all created products.')

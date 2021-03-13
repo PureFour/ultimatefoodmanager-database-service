@@ -3,7 +3,7 @@ import 'reflect-metadata';
 import * as _ from 'lodash';
 import IDENTIFIER from '../config-ioc/identifiers';
 import { MediaQueries } from '../queries/default-media-queries';
-import { Image } from '../models/web/image-model';
+import { Image } from '../models/web/media/image-model';
 import { UTILS_SERVICE } from './util-service';
 import { StatusCodes } from 'http-status-codes';
 

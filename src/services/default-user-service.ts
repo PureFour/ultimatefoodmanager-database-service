@@ -4,10 +4,10 @@ import * as _ from 'lodash';
 import IDENTIFIER from '../config-ioc/identifiers';
 import { UserQueries } from '../queries/default-user-queries';
 import { StatusCodes } from 'http-status-codes';
-import { User } from '../models/web/user';
-import { RegisterRequest } from '../models/web/register-request';
+import { User } from '../models/web/user/user';
+import { RegisterRequest } from '../models/web/user/register-request';
 import { UserMapper } from '../mappers/default-user-mapper';
-import { FindUserQuery } from '../models/web/find-user-query';
+import { FindUserQuery } from '../models/web/user/find-user-query';
 import { ProductQueries } from '../queries/default-product-queries';
 import { Container } from '../models/internal/container';
 

@@ -14,6 +14,25 @@ export const UTILS_SERVICE = {
 		return new Date().toISOString().substring(0, 10);
 	},
 
+	areEqualDates: (firstDateString: string, secondDateString: string): boolean => {
+		const firstDate: Date = new Date(firstDateString);
+		const secondDate: Date = new Date(secondDateString);
+		return firstDate.getTime() === secondDate.getTime();
+	},
+
+	isBetweenDates: (dateToCompareString: string, firstDateString: string, secondDateString: string): boolean => {
+		const dateToCompare: Date = new Date(dateToCompareString);
+		const firstDate: Date = new Date(firstDateString);
+		const secondDate: Date = new Date(secondDateString);
+		return firstDate <= dateToCompare && dateToCompare <= secondDate;
+	},
+
+	isBeforeDate: (dateToCompareString: string, secondDateString: string): boolean => {
+		const dateToCompare: Date = new Date(dateToCompareString);
+		const secondDate: Date = new Date(secondDateString);
+		return dateToCompare < secondDate;
+	},
+
 	finalize: (res: Foxx.Response, payload: any, status: StatusCodes): void => {
 		res.status(status);
 		res.send(payload);
