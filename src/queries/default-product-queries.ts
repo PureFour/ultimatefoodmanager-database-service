@@ -5,7 +5,7 @@ import { AssociatedProduct } from '../models/internal/associated-product';
 import { InternalProduct } from '../models/internal/internal-product';
 import { Container } from '../models/internal/container';
 import { UTILS_SERVICE } from '../services/util-service';
-import { ProductCard } from '../models/web/product-card';
+import { ProductCard } from '../models/web/product/product-card';
 
 const productCollection: ArangoDB.Collection = DOCUMENT_COLLECTION.PRODUCTS.collection;
 const productCardsCollection: ArangoDB.Collection = DOCUMENT_COLLECTION.PRODUCT_CARDS.collection;

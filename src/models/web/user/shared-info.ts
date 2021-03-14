@@ -1,6 +1,6 @@
 import * as joi from 'joi';
 import * as _ from 'lodash';
-import { positiveNumber } from './utils';
+import { positiveNumber } from '../utils';
 import { User, UserModel } from './user';
 
 export class SharedInfoModel implements Foxx.Model {

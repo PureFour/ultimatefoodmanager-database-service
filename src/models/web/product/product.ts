@@ -1,7 +1,7 @@
 import * as joi from 'joi';
 import * as _ from 'lodash';
 import { Metadata, MetadataModel } from './metadata';
-import { positiveNumber } from './utils';
+import { positiveNumber } from '../utils';
 import { ProductCard, ProductCardModel } from './product-card';
 
 export class ProductModel implements Foxx.Model {

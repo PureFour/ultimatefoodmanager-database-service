@@ -1,6 +1,6 @@
 import * as joi from 'joi';
 import * as _ from 'lodash';
-import { positiveNumber } from './utils';
+import { positiveNumber } from '../utils';
 
 export class PriceModel implements Foxx.Model {
 

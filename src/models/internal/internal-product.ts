@@ -1,6 +1,6 @@
-import { Metadata } from '../web/metadata';
+import { Metadata } from '../web/product/metadata';
 import { AssociatedProduct } from './associated-product';
-import { ProductCard } from '../web/product-card';
+import { ProductCard } from '../web/product/product-card';
 
 export interface InternalProduct {
 	_key?: string;

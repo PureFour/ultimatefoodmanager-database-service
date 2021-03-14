@@ -1,4 +1,4 @@
-import { Metadata } from '../web/metadata';
+import { Metadata } from '../web/product/metadata';
 
 export interface AssociatedProduct {
 	uuid: string;

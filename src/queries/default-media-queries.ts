@@ -1,7 +1,7 @@
 import { injectable } from 'inversify';
 import { DOCUMENT_COLLECTION } from '../models/enums/document-collections';
 import { aql, db } from '@arangodb';
-import { Image } from '../models/web/image-model';
+import { Image } from '../models/web/media/image-model';
 
 const imagesCollection: ArangoDB.Collection = DOCUMENT_COLLECTION.IMAGES.collection;
 

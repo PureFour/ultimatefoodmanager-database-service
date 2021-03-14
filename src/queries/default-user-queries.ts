@@ -1,5 +1,5 @@
 import { injectable } from 'inversify';
-import { User } from '../models/web/user';
+import { User } from '../models/web/user/user';
 import { DOCUMENT_COLLECTION } from '../models/enums/document-collections';
 import { aql, db } from '@arangodb';
 

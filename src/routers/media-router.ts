@@ -4,7 +4,7 @@ import { container } from '../config-ioc/container';
 import IDENTIFIER from '../config-ioc/identifiers';
 import { StatusCodes } from 'http-status-codes';
 import { MediaService } from '../services/default-media-service';
-import { ImageModel } from '../models/web/image-model';
+import { ImageModel } from '../models/web/media/image-model';
 
 const MIME_TYPE = 'application/json';
 const TAG: string = 'Media';

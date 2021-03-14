@@ -3,7 +3,7 @@ import 'reflect-metadata';
 import * as _ from 'lodash';
 
 import { AssociatedProduct } from '../models/internal/associated-product';
-import { Product, ProductModel } from '../models/web/product';
+import { Product, ProductModel } from '../models/web/product/product';
 import { UTILS_SERVICE } from '../services/util-service';
 import { InternalProduct } from '../models/internal/internal-product';
 

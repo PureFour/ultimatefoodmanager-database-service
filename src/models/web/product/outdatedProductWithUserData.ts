@@ -1,7 +1,7 @@
 import * as joi from 'joi';
 import * as _ from 'lodash';
 import { Product, ProductModel } from './product';
-import { User, UserModel } from './user';
+import { User, UserModel } from '../user/user';
 
 export class OutdatedProductWithUserDataModel implements Foxx.Model {
 

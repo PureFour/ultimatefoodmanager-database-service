@@ -7,13 +7,19 @@ import { ProductQueries } from '../queries/default-product-queries';
 import { ProductMapper } from '../mappers/default-product-mapper';
 import { InternalProduct } from '../models/internal/internal-product';
 import { Container } from '../models/internal/container';
-import { Product } from '../models/web/product';
+import { Product } from '../models/web/product/product';
 import { AssociatedProduct } from '../models/internal/associated-product';
-import { ProductCard } from '../models/web/product-card';
-import { User } from '../models/web/user';
+import { ProductCard } from '../models/web/product/product-card';
+import { User } from '../models/web/user/user';
 import { UserQueries } from '../queries/default-user-queries';
-import { SharedInfo } from '../models/web/shared-info';
-import { OutdatedProductWithUserData } from '../models/web/outdatedProductWithUserData';
+import { SharedInfo } from '../models/web/user/shared-info';
+import { OutdatedProductWithUserData } from '../models/web/product/outdatedProductWithUserData';
+import { QueryFilter } from '../models/web/filters/query-filter';
+import { Sorting } from '../models/web/filters/sorting';
+import { Selector } from '../models/web/filters/selector';
+import { Filter } from '../models/web/filters/filter';
+import { Range } from '../models/web/filters/range';
+import { UTILS_SERVICE } from './util-service';
 
 @injectable()
 export class DefaultProductService implements ProductService {
@@ -131,8 +137,10 @@ export class DefaultProductService implements ProductService {
 			res.send([]);
 			return;
 		}
+		const queryFilter: QueryFilter = req.body;
 		const products: InternalProduct[] = this.getAllProductsFromContainer(container);
-		this.finalize(res, products.map(product => this.productMapper.toWebProduct(product)), StatusCodes.OK);
+		const filteredProducts: InternalProduct[] = this.filterAndSortProducts(products, queryFilter, res);
+		this.finalize(res, filteredProducts.map(product => this.productMapper.toWebProduct(product)), StatusCodes.OK);
 	};
 
 	public readonly deleteProduct = (req: Foxx.Request, res: Foxx.Response): void => {
@@ -207,6 +215,90 @@ export class DefaultProductService implements ProductService {
 		this.productQueries.updateContainer(targetContainer);
 	};
 
+	private readonly filterAndSortProducts = (products: InternalProduct[], queryFilter: QueryFilter, res: Foxx.Response): InternalProduct[] => {
+		try {
+			const sorting: Sorting = queryFilter.sorting;
+			const filteredProducts: InternalProduct[] = _.isNil(queryFilter.filters) ? products : this.filterProducts(products, queryFilter);
+			return _.isNil(sorting) ? filteredProducts : this.sortProducts(filteredProducts, sorting);
+		} catch (e) {
+			res.throw(StatusCodes.BAD_REQUEST, e.message);
+		}
+		return products;
+	};
+
+	private readonly filterProducts = (products: InternalProduct[], queryFilter: QueryFilter): InternalProduct[] => {
+		queryFilter.filters.forEach(filter => {
+			products = this.internalFilterProducts(products, filter);
+		}, products);
+		return products;
+	};
+
+	private readonly internalFilterProducts = (products: InternalProduct[], filter: Filter): InternalProduct[] => {
+		return products.filter(product => this.getFilterFunction(filter)(product));
+	};
+
+	private readonly getFilterFunction = (filter: Filter) => {
+		if (!Object.values(Selector).includes(filter.selector)) {
+			throw new Error('Incorrect filter selector! available selectors : [CATEGORY, CURRENCY, PRICE, EXPIRY_DATE, CREATED_DATE]');
+		}
+
+		if ((filter.range.minimumValue || filter.range.maximumValue) && filter.range.exactValue) {
+			throw new Error('Incorrect filter range values! Cannot be set all filter range values!');
+		}
+
+		switch (filter.selector) {
+			case Selector.PRICE:
+				return (product: InternalProduct): boolean =>
+					_.inRange(product.productCard.price.value, filter.range.minimumValue, filter.range.maximumValue);
+			case Selector.CURRENCY:
+				return (product: InternalProduct): boolean =>
+					_.eq(product.productCard.price.currency, filter.range.exactValue);
+			case Selector.CATEGORY:
+				return (product: InternalProduct): boolean =>
+					_.eq(product.productCard.category, filter.range.exactValue);
+			case Selector.CREATED_DATE:
+				return (product: InternalProduct): boolean =>
+					this.compareProductDates(product.metadata.createdDate, filter.range);
+			case Selector.EXPIRY_DATE:
+				return (product: InternalProduct): boolean =>
+					this.compareProductDates(product.metadata.expiryDate, filter.range);
+		}
+	};
+
+	private readonly compareProductDates = (productDateString: string, filterRange: Range): boolean => {
+		const exactDateString: string = filterRange.exactValue;
+		const minimumDateString: string = filterRange.minimumValue;
+		const maximumDateString: string = filterRange.maximumValue;
+
+		if (!UTILS_SERVICE.isBeforeDate(minimumDateString, maximumDateString)) {
+			throw new Error('Incorrect filter date range values! startDate must be before endDate!');
+		}
+
+		return _.isNil(exactDateString) ?
+			UTILS_SERVICE.isBetweenDates(productDateString, minimumDateString, maximumDateString)
+			: UTILS_SERVICE.areEqualDates(productDateString, exactDateString);
+	};
+
+	private readonly sortProducts = (products: InternalProduct[], sorting: Sorting): InternalProduct[] => {
+		const sortedAscending: InternalProduct[] = _.sortBy(products, [this.getSortingFunction(sorting)]);
+		return sorting.ascending ? sortedAscending : _.reverse(sortedAscending);
+	};
+
+	private readonly getSortingFunction = (sorting: Sorting) => {
+		if (![Selector.PRICE, Selector.EXPIRY_DATE, Selector.CREATED_DATE].includes(sorting.selector)) {
+			throw new Error('Incorrect sorting selector! available selectors : [PRICE, EXPIRY_DATE, CREATED_DATE]');
+		}
+
+		switch (sorting.selector) {
+			case Selector.PRICE:
+				return (product: InternalProduct) => product.productCard.price.value;
+			case Selector.CREATED_DATE:
+				return (product: InternalProduct) => product.metadata.createdDate;
+			case Selector.EXPIRY_DATE:
+				return (product: InternalProduct) => product.metadata.expiryDate;
+		}
+	};
+
 	private markAsSynchronized = (product: InternalProduct): void => {
 		_.set(product, 'metadata.synchronized', true);
 		product.associatedProducts.forEach(associatedProduct =>
@@ -275,7 +367,7 @@ export class DefaultProductService implements ProductService {
 	private readonly isProductShared = (fullInternalProduct: InternalProduct, productUuid: string): boolean => {
 		return productUuid === fullInternalProduct.uuid ? _.get(fullInternalProduct, 'metadata.shared', false)
 			: fullInternalProduct.associatedProducts.some(associatedProduct => associatedProduct.uuid === productUuid
-			&& _.get(associatedProduct, 'metadata.shared', false));
+				&& _.get(associatedProduct, 'metadata.shared', false));
 	};
 
 	private addAssociatedProduct = (dbProduct: InternalProduct, newProduct: InternalProduct, container: Container, res: Foxx.Response): InternalProduct => {
