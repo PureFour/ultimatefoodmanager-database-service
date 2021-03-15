@@ -144,7 +144,7 @@ export class DefaultProductService implements ProductService {
 	};
 
 	public readonly deleteProduct = (req: Foxx.Request, res: Foxx.Response): void => {
-		this._deleteProduct(req.body, req.pathParams.userUuid, res);
+		this._deleteProduct(<Product>{uuid: req.body}, req.pathParams.userUuid, res);
 	};
 
 	private _deleteProduct = (product: Product, userUuid: string, res: Foxx.Response): void => {
