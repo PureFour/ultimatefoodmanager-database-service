@@ -10,6 +10,7 @@ import { ContainerModel } from '../models/internal/container';
 import { SharedInfoModel } from '../models/web/user/shared-info';
 import { OutdatedProductWithUserDataModel } from '../models/web/product/outdatedProductWithUserData';
 import { QueryFilterModel } from '../models/web/filters/query-filter';
+import { SynchronizeResponseModel } from '../models/web/product/synchronizeResponse';
 
 const MIME_TYPE: string = 'application/json';
 const TAG: string = 'Products';
@@ -46,7 +47,7 @@ export const router: Foxx.Router = (() => {
 	foxxRouter.put(':userUuid/synchronizeAll', productService.synchronizeAll, 'synchronizeAll')
 		.tag(TAG)
 		.body([new ProductModel()], [MIME_TYPE])
-		.response(StatusCodes.OK, [new ProductModel()], [MIME_TYPE], 'Products response model')
+		.response(StatusCodes.OK, [new SynchronizeResponseModel()], [MIME_TYPE], 'Products response model')
 		.response(StatusCodes.BAD_REQUEST, [MIME_TYPE])
 		.response(StatusCodes.NOT_FOUND, [MIME_TYPE])
 		.summary('Returns synchronized product.')
@@ -89,6 +90,11 @@ export const router: Foxx.Router = (() => {
 		.response(StatusCodes.NOT_FOUND, [MIME_TYPE])
 		.summary('Returns Global product card with barcode.')
 		.description(`Returns Global product card with barcode.`);
+
+	foxxRouter.put('global/synchronizeAll', productService.synchronizeAllGlobalCards, 'synchronizeAllGlobalCards')
+		.tag(TAG)
+		.summary('Synchronizes all global cards.')
+		.description(`Synchronizes all global cards.`);
 
 	foxxRouter.get('containers/:userUuid', productService.getContainer, 'getContainer')
 		.tag(TAG)

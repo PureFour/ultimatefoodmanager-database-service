@@ -13,6 +13,10 @@ export const DOCUMENT_COLLECTION = Object.freeze({
 		{type: 'hash', fields: ['barcode'], unique: true, deduplicate: false}
 	]),
 
+	GLOBAL_CARD_SYNC_METADATA: new Collection('global_card_sync_metadata', [
+		{type: 'hash', fields: ['barcode'], unique: true, deduplicate: false}
+	]),
+
 	CONTAINERS: new Collection('containers', [
 		{type: 'hash', fields: ['uuid'], unique: true, deduplicate: false}
 	]),

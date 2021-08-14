@@ -6,9 +6,12 @@ import { InternalProduct } from '../models/internal/internal-product';
 import { Container } from '../models/internal/container';
 import { UTILS_SERVICE } from '../services/util-service';
 import { ProductCard } from '../models/web/product/product-card';
+import { GlobalCardSynchronizationMetadata } from '../models/internal/global-card-synchronization-metadata';
+import { GlobalCardWithSyncMetadata } from '../models/internal/global_card_with_sync_metadata';
 
 const productCollection: ArangoDB.Collection = DOCUMENT_COLLECTION.PRODUCTS.collection;
 const productCardsCollection: ArangoDB.Collection = DOCUMENT_COLLECTION.PRODUCT_CARDS.collection;
+const globalCardSyncMetadataCollection: ArangoDB.Collection = DOCUMENT_COLLECTION.GLOBAL_CARD_SYNC_METADATA.collection;
 const containersCollection: ArangoDB.Collection = DOCUMENT_COLLECTION.CONTAINERS.collection;
 
 @injectable()
@@ -192,12 +195,21 @@ export class DefaultProductQueries implements ProductQueries {
       	`).toArray()[0];
 	};
 
-	public addGlobalProductCard = (productCard: ProductCard): ProductCard => {
+	public getGlobalCardSyncMetadata = (barcode: string): GlobalCardSynchronizationMetadata => {
 		return db._query(aql`
+            FOR globalCardSyncMetadata IN ${globalCardSyncMetadataCollection}
+            FILTER globalCardSyncMetadata.barcode == ${barcode}
+            RETURN UNSET(globalCardSyncMetadata, "_id", "_rev", "_key")
+      	`).toArray()[0];
+	};
+
+	public addGlobalProductCard = (productCard: ProductCard, globalCardSyncMetadata: GlobalCardSynchronizationMetadata): void => {
+		db._query(aql`
             INSERT ${productCard}
             IN ${productCardsCollection}
-            RETURN NEW
-      	`).toArray()[0];
+            INSERT ${globalCardSyncMetadata}
+            IN ${globalCardSyncMetadataCollection}
+      	`);
 	};
 
 	public updateGlobalProductCard = (productCard: ProductCard): void => {
@@ -208,6 +220,30 @@ export class DefaultProductQueries implements ProductQueries {
 			WITH ${productCard}
 			IN ${productCardsCollection}
       	`);
+	};
+
+	public updateGlobalCardSyncMetadata = (globalCardSyncMetadata: GlobalCardSynchronizationMetadata): void => {
+		db._query(aql`
+            FOR globalCardSyncMetadata IN ${globalCardSyncMetadataCollection}
+			FILTER globalCardSyncMetadata.barcode == ${globalCardSyncMetadata.barcode}
+			UPDATE globalCardSyncMetadata
+			WITH ${globalCardSyncMetadata}
+			IN ${globalCardSyncMetadataCollection}
+      	`);
+	};
+
+	public getAllProductCardsWithMetadata = (): GlobalCardWithSyncMetadata[] => {
+		return db._query(aql`
+            FOR productCard IN ${productCardsCollection}
+            RETURN {
+         		globalProductCard: UNSET(productCard, "_id", "_rev", "_key"),
+         		syncMetadata: FIRST(
+         			FOR globalCardSyncMetadata IN ${globalCardSyncMetadataCollection}
+         			FILTER globalCardSyncMetadata.barcode == productCard.barcode
+         			RETURN UNSET(globalCardSyncMetadata, "_id", "_rev", "_key")
+         		)
+         	}
+      	`).toArray();
 	};
 }
 
@@ -227,6 +263,9 @@ export interface ProductQueries {
 	getAllOutdatedProducts: () => InternalProduct[];
 	deleteFullProduct: (productUuid: string, containerUuid: string, shared: boolean) => InternalProduct;
 	findGlobalProductCard: (barcode: string) => ProductCard;
-	addGlobalProductCard: (productCard: ProductCard) => ProductCard;
+	getGlobalCardSyncMetadata: (barcode: string) => GlobalCardSynchronizationMetadata;
+	addGlobalProductCard: (productCard: ProductCard, globalCardSynchronizationMetadata: GlobalCardSynchronizationMetadata) => void;
 	updateGlobalProductCard: (productCard: ProductCard) => void;
+	updateGlobalCardSyncMetadata: (globalCardSyncMetadata: GlobalCardSynchronizationMetadata) => void;
+	getAllProductCardsWithMetadata: () => GlobalCardWithSyncMetadata[];
 }
