@@ -7,6 +7,7 @@ export class NutrimentsModel implements Foxx.Model {
 	schema = joi.object().keys({
 		energy: positiveNumber,
 		fat: positiveNumber,
+		proteins: positiveNumber,
 		saturatedFat: positiveNumber,
 		insatiableFat: positiveNumber,
 		carbohydrates: positiveNumber,
@@ -28,6 +29,7 @@ export class NutrimentsModel implements Foxx.Model {
 export interface Nutriments {
 	energy: number;
 	fat: number;
+	proteins: number;
 	saturatedFat: number;
 	insatiableFat: number;
 	carbohydrates: number;
