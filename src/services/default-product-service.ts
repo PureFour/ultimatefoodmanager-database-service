@@ -236,35 +236,42 @@ export class DefaultProductService implements ProductService {
 
 	private getProductCardsToUpdate = (allGlobalCardsWithMetadata: GlobalCardWithSyncMetadata[]): ProductCard[] => {
 		const globalCardsToUpdate: ProductCard[] = [];
-		console.log('allGlobalCardsWithMetadata: ' + JSON.stringify(allGlobalCardsWithMetadata));
 		allGlobalCardsWithMetadata.forEach(globalCardSyncMetadata => {
-			console.log('globalCardSyncMetadata: ' + JSON.stringify(globalCardSyncMetadata));
 			const globalCard: ProductCard = globalCardSyncMetadata.globalProductCard;
 			if (this.applyFieldChanges(globalCard, globalCardSyncMetadata.syncMetadata)) {
 				globalCardsToUpdate.push(globalCard);
+				this.productQueries.updateGlobalCardSyncMetadata(globalCardSyncMetadata.syncMetadata);
 			}
 		});
 
 		return globalCardsToUpdate;
 	};
 
-	private applyFieldChanges = (productCard: ProductCard, globalCardSynchronizationMetadata: GlobalCardSynchronizationMetadata): boolean => {
-		let isChangedCard: boolean = false;
-		console.log('applyFieldChanges...');
-		console.log('productCard: ' + JSON.stringify(productCard));
-		console.log('globalCardSynchronizationMetadata: ' + JSON.stringify(globalCardSynchronizationMetadata));
+	private applyFieldChanges = (
+		productCard: any,
+		globalCardSynchronizationMetadata: GlobalCardSynchronizationMetadata,
+		currentFieldName: string = ''): boolean => {
+
+		const oldProductCard: any = _.cloneDeep(productCard);
+
 		Object.keys(productCard)
 			.filter(fieldName => !['barcode', 'photoUrl'].includes(fieldName))
 			.forEach(fieldName => {
-			const updatedValue = this.getNewValueForGlobalCardField(fieldName, globalCardSynchronizationMetadata);
-			if (!_.isNil(updatedValue)) {
-				isChangedCard = true;
-				productCard[fieldName] = updatedValue;
-				globalCardSynchronizationMetadata.changedFieldsMap.set(fieldName, []);
-			}
+				const productCardFieldValue: any = productCard[fieldName];
+
+				if (typeof productCardFieldValue === 'object') {
+					this.applyFieldChanges(productCardFieldValue, globalCardSynchronizationMetadata, fieldName);
+				} else {
+					const syncMetadataFieldName: string = currentFieldName ? currentFieldName + '_' + fieldName : fieldName;
+					const updatedValue = this.getNewValueForGlobalCardField(syncMetadataFieldName, globalCardSynchronizationMetadata);
+					if (!_.isNil(updatedValue)) {
+						productCard[fieldName] = updatedValue;
+						globalCardSynchronizationMetadata.changedFieldsMap[syncMetadataFieldName] = [];
+					}
+				}
 		});
 
-		return isChangedCard;
+		return !_.isEqual(oldProductCard, productCard);
 	};
 
 	private getNewValueForGlobalCardField = (fieldName: string, globalCardSynchronizationMetadata: GlobalCardSynchronizationMetadata): any => {
@@ -465,7 +472,7 @@ export class DefaultProductService implements ProductService {
 			const globalCardSyncMetadata: GlobalCardSynchronizationMetadata = this.productQueries.getGlobalCardSyncMetadata(dbProductCard.barcode);
 			const isGlobalCardChanged: boolean = !_.isEqual(newProductCard, dbProductCard);
 			if (isGlobalCardChanged) {
-				this.updateSyncMetadata(newProductCard, dbProductCard, globalCardSyncMetadata);
+				this.updateGlobalCardSyncMetadata(newProductCard, dbProductCard, globalCardSyncMetadata);
 				this.productQueries.updateGlobalCardSyncMetadata(globalCardSyncMetadata);
 			}
 			// TODO to zrobić dopiero na żądanie main-service!
@@ -474,10 +481,20 @@ export class DefaultProductService implements ProductService {
 		}
 	};
 
-	private updateSyncMetadata = (newProductCard: ProductCard, dbProductCard: ProductCard, globalCardSyncMetadata: GlobalCardSynchronizationMetadata): void => {
+	private updateGlobalCardSyncMetadata = (
+		newProductCard: any,
+		dbProductCard: any,
+		globalCardSyncMetadata: GlobalCardSynchronizationMetadata,
+		currentFieldName: string = ''): void => {
+
 		Object.keys(dbProductCard).forEach(fieldName => {
-			if (dbProductCard[fieldName] !== newProductCard[fieldName]) {
-				this.markChangedFieldInMetadata(fieldName, newProductCard[fieldName], globalCardSyncMetadata);
+			const newProductCardFieldValue: any = newProductCard[fieldName];
+			const oldProductCardFieldValue: any = dbProductCard[fieldName];
+			if (typeof oldProductCardFieldValue === 'object') {
+				this.updateGlobalCardSyncMetadata(newProductCardFieldValue, oldProductCardFieldValue, globalCardSyncMetadata, fieldName);
+			} else if (dbProductCard[fieldName] !== newProductCard[fieldName]) {
+				const syncMetadataFieldName: string = currentFieldName ? currentFieldName + '_' + fieldName : fieldName;
+				this.markChangedFieldInMetadata(syncMetadataFieldName, newProductCard[fieldName], globalCardSyncMetadata);
 			}
 		});
 	};
@@ -570,6 +587,11 @@ export class DefaultProductService implements ProductService {
 
 	private getProductOwners = (productUuid: string): User[] => {
 		const containerWithProduct: Container = this.productQueries.getContainersWithProduct(productUuid);
+
+		if (containerWithProduct.ownerProducts.includes(productUuid)) {
+			return [containerWithProduct.ownerUuid].map(ownerUuid => this.userQueries.getUser(ownerUuid));
+		}
+
 		return [containerWithProduct.ownerUuid, ...containerWithProduct.usersUuids]
 			.map(ownerUuid => this.userQueries.getUser(ownerUuid));
 	};
