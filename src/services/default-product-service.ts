@@ -39,6 +39,12 @@ export class DefaultProductService implements ProductService {
 		this.finalize(res, this.productMapper.toWebProduct(createdProduct), StatusCodes.CREATED);
 	};
 
+	public addProducts = (req: Foxx.Request, res: Foxx.Response): void => {
+		const createdProducts: InternalProduct[] = (<Product[]> req.body)
+			.map(productToAdd => this._addProduct(productToAdd, req.pathParams.userUuid, res));
+		this.finalize(res, createdProducts.map(createdProduct => this.productMapper.toWebProduct(createdProduct)), StatusCodes.CREATED);
+	};
+
 	private _addProduct = (product: Product, userUuid: string, res: Foxx.Response): InternalProduct => {
 		const productToAdd: InternalProduct = this.productMapper.toInternalProduct(product);
 		this.handleGlobalProductCard(productToAdd.productCard);
@@ -651,6 +657,7 @@ export class DefaultProductService implements ProductService {
 
 export interface ProductService {
 	addProduct: (req: Foxx.Request, res: Foxx.Response) => void;
+	addProducts: (req: Foxx.Request, res: Foxx.Response) => void;
 	updateProduct: (req: Foxx.Request, res: Foxx.Response) => void;
 	synchronizeAll: (req: Foxx.Request, res: Foxx.Response) => void;
 	getProduct: (req: Foxx.Request, res: Foxx.Response) => void;
