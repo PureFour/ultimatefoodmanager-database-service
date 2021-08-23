@@ -340,7 +340,10 @@ export class DefaultProductService implements ProductService {
 				return (product: InternalProduct): boolean =>
 					this.compareProductDates(product.metadata.createdDate, filter.range);
 			case Selector.EXPIRY_DATE:
-				return (product: InternalProduct): boolean =>
+				return filter.range.exactValue
+					? (product: InternalProduct): boolean =>
+						_.eq(product.metadata.expiryDate, filter.range.exactValue)
+					: (product: InternalProduct): boolean =>
 					this.compareProductDates(product.metadata.expiryDate, filter.range);
 		}
 	};
