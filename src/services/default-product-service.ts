@@ -254,7 +254,7 @@ export class DefaultProductService implements ProductService {
 	};
 
 	private applyFieldChanges = (
-		productCard: any,
+		productCard: ProductCard,
 		globalCardSynchronizationMetadata: GlobalCardSynchronizationMetadata,
 		currentFieldName: string = ''): boolean => {
 
@@ -284,13 +284,15 @@ export class DefaultProductService implements ProductService {
 		const valueWithRepetitions: ValueWithRepetitions[] = _.isNil(globalCardSynchronizationMetadata.changedFieldsMap[fieldName]) ? [] :
 			globalCardSynchronizationMetadata.changedFieldsMap[fieldName];
 
-		for (const item of valueWithRepetitions) {
-			if (item.repetitions >= 10) {
-				return item.value;
+		let currentPromotedField: ValueWithRepetitions = {repetitions: 0, value: undefined};
+		for (const valueWithRepetition of valueWithRepetitions) {
+			if (valueWithRepetition.repetitions >= 10 &&
+				valueWithRepetition.repetitions > currentPromotedField.repetitions) {
+				currentPromotedField = valueWithRepetition;
 			}
 		}
 
-		return undefined;
+		return _.get(currentPromotedField, 'value', undefined);
 	};
 
 	private readonly filterAndSortProducts = (products: InternalProduct[], queryFilter: QueryFilter, res: Foxx.Response): InternalProduct[] => {
