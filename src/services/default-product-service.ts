@@ -422,7 +422,9 @@ export class DefaultProductService implements ProductService {
 	};
 
 	private readonly getAllProductsFromContainer = (container: Container): InternalProduct[] => {
-		return this.getAllProductsUuidsFromContainer(container).map(productUuid => this.productQueries.getProduct(productUuid));
+		return this.getAllProductsUuidsFromContainer(container)
+			.map(productUuid => this.productQueries.getProduct(productUuid))
+			.filter(product => !_.isNil(product));
 	};
 
 	private readonly getAllProductsUuidsFromContainer = (container: Container): string[] => {
